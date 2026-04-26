@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { MapContainer, Marker, TileLayer, useMapEvents } from 'react-leaflet'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import { cn } from '@/lib/utils'
 
@@ -26,8 +26,40 @@ function MapClickLayer({ mode, onPick }) {
   return null
 }
 
+/** First paint: show both pins in frame. */
+function MapInitialFit({ pickup, dropoff }) {
+  const map = useMap()
+  const done = useRef(false)
+  useEffect(() => {
+    if (done.current) return
+    done.current = true
+    try {
+      map.fitBounds(L.latLngBounds(L.latLng(pickup.lat, pickup.lng), L.latLng(dropoff.lat, dropoff.lng)), {
+        padding: [56, 56],
+        maxZoom: 15,
+        animate: false,
+      })
+    } catch (_) {}
+  }, [map, pickup.lat, pickup.lng, dropoff.lat, dropoff.lng])
+  return null
+}
+
+/** After «موقعي GPS» — fly to pickup so the user sees themselves immediately. */
+function MapFlyToPickup({ pickup, recenterTick }) {
+  const map = useMap()
+  const prev = useRef(0)
+  useEffect(() => {
+    if (!recenterTick || recenterTick === prev.current) return
+    prev.current = recenterTick
+    const z = Math.max(map.getZoom(), 15)
+    map.flyTo([pickup.lat, pickup.lng], z, { duration: 0.55 })
+  }, [recenterTick, map, pickup.lat, pickup.lng])
+  return null
+}
+
 /**
  * Interactive OSM map: tap to set pickup/dropoff (active mode), drag pins to adjust.
+ * @param {{ recenterTick?: number }} props — bump `recenterTick` after GPS / geocode so the map flies to pickup.
  */
 export default function TripMapPicker({
   className,
@@ -36,6 +68,7 @@ export default function TripMapPicker({
   mapMode,
   onPickupChange,
   onDropoffChange,
+  recenterTick = 0,
 }) {
   const [mounted, setMounted] = useState(false)
   useEffect(() => {
@@ -84,6 +117,8 @@ export default function TripMapPicker({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        <MapInitialFit pickup={pickup} dropoff={dropoff} />
+        <MapFlyToPickup pickup={pickup} recenterTick={recenterTick} />
         <MapClickLayer mode={mapMode} onPick={onPick} />
         <Marker
           position={[pickup.lat, pickup.lng]}

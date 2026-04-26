@@ -6,7 +6,7 @@ import { getActiveRole } from '@/lib/sessionTokens'
 import { cn } from '@/lib/utils'
 
 /**
- * Menu + notifications — fixed end.
+ * Menu + notifications — `start` = inline-start; with `html dir=rtl` that is the **physical right** (thumb zone).
  * On `/app/home` controls sit at the **top** so they never stack above bottom sheets (z-index trap).
  */
 export default function FloatingAppControls() {
@@ -18,7 +18,7 @@ export default function FloatingAppControls() {
   return (
     <div
       className={cn(
-        'pointer-events-none fixed end-3 z-[45] flex flex-col gap-2',
+        'pointer-events-none fixed start-3 z-[45] flex flex-col gap-2',
         controlsAtTop ? 'top-[max(0.75rem,var(--safe-top))]' : 'bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))]',
       )}
     >

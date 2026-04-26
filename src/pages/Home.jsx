@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { ChevronRight, LocateFixed, Minus, Plus, Star, Ticket, X } from 'lucide-react'
@@ -16,6 +18,7 @@ import {
   computeFareFromPricingRule,
   haversineDistanceKm,
 } from '@/lib/tripFare'
+import { geocodeFirstHit } from '@/lib/osmGeocode'
 
 const ink = 'text-[#0A0C0F]'
 const muted = 'text-[#52627A]'
@@ -116,6 +119,32 @@ function MapBg({ src, className }) {
   )
 }
 
+/** inDrive-style pulse while we query captains (shown on matching + while offers search runs). */
+function SearchRadarPulse({ label = 'جاري البحث عن أقرب الكباتن' }) {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-[4] flex items-end justify-center pb-[min(42%,14rem)]">
+      <div className="relative flex size-28 items-center justify-center">
+        <div
+          className="absolute size-[7.5rem] rounded-full bg-primary/25"
+          style={{ animation: 'go-radar 2.4s ease-out infinite' }}
+        />
+        <div
+          className="absolute size-[10.5rem] rounded-full bg-primary/18"
+          style={{ animation: 'go-radar 2.4s ease-out infinite', animationDelay: '0.5s' }}
+        />
+        <div
+          className="absolute size-[13.5rem] rounded-full bg-primary/12"
+          style={{ animation: 'go-radar 2.4s ease-out infinite', animationDelay: '1s' }}
+        />
+        <div className="relative z-[1] max-w-[11rem] rounded-2xl border border-white/90 bg-white/95 px-3 py-2 text-center shadow-lg backdrop-blur-sm">
+          <p className="text-xs font-bold text-primary">{label}</p>
+        </div>
+      </div>
+      <style>{`@keyframes go-radar{0%{transform:scale(0.35);opacity:0.9}70%{opacity:0.35}100%{transform:scale(1);opacity:0}}`}</style>
+    </div>
+  )
+}
+
 function PinCluster() {
   return (
     <div className="pointer-events-none absolute left-1/2 top-[38%] z-[5] flex w-5 -translate-x-1/2 flex-col items-center">
@@ -143,7 +172,45 @@ function RoutePlanSheet({
   tripDistanceKm,
   onUseMyLocation,
   locationBusy,
+  onPickupPatch,
+  onDropoffPatch,
+  onRequestMapRecenter,
 }) {
+  const [geoPickBusy, setGeoPickBusy] = useState(false)
+  const [geoDropBusy, setGeoDropBusy] = useState(false)
+
+  const runGeocodePickup = async () => {
+    setGeoPickBusy(true)
+    try {
+      const hit = await geocodeFirstHit(pickup.address)
+      if (!hit) {
+        toast.error('لم يُعثر على عنوان الانطلاق. صغّح النص أو ضع الدبوس على الخريطة.')
+        return
+      }
+      onPickupPatch(hit)
+      onRequestMapRecenter?.()
+      toast.success('تم تحديث نقطة الانطلاق من البحث')
+    } finally {
+      setGeoPickBusy(false)
+    }
+  }
+
+  const runGeocodeDropoff = async () => {
+    setGeoDropBusy(true)
+    try {
+      const hit = await geocodeFirstHit(dropoff.address)
+      if (!hit) {
+        toast.error('لم يُعثر على الوجهة. صغّح النص أو ضع الدبوس على الخريطة.')
+        return
+      }
+      onDropoffPatch(hit)
+      onRequestMapRecenter?.()
+      toast.success('تم تحديث الوجهة من البحث')
+    } finally {
+      setGeoDropBusy(false)
+    }
+  }
+
   return (
     <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-[50] flex max-h-[56%] flex-col rounded-t-[30px] bg-white shadow-[0_-8px_32px_rgba(0,0,0,0.08)]">
       <div className="mx-auto mt-2 h-1 w-12 shrink-0 rounded-full bg-[#e7e9f2]" />
@@ -168,6 +235,49 @@ function RoutePlanSheet({
             <LocateFixed className="size-3.5 shrink-0" />
             {locationBusy ? 'جاري الموقع…' : 'موقعي GPS'}
           </Button>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-xs font-semibold text-[#52627A]">عنوان الانطلاق (اكتب ثم بحث أو حرّك الدبوس)</Label>
+          <div className="flex gap-2">
+            <Input
+              dir="rtl"
+              value={pickup.address}
+              onChange={(e) => onPickupPatch({ address: e.target.value })}
+              className="h-11 flex-1 rounded-xl border-[#E8EAEF] text-end"
+              placeholder="مثال: ميدان التحرير، القاهرة"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 shrink-0 rounded-xl px-3 text-xs font-semibold"
+              disabled={geoPickBusy}
+              onClick={() => void runGeocodePickup()}
+            >
+              {geoPickBusy ? '…' : 'بحث'}
+            </Button>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-xs font-semibold text-[#52627A]">الوجهة (اكتب ثم بحث أو حرّك الدبوس الأحمر)</Label>
+          <div className="flex gap-2">
+            <Input
+              dir="rtl"
+              value={dropoff.address}
+              onChange={(e) => onDropoffPatch({ address: e.target.value })}
+              className="h-11 flex-1 rounded-xl border-[#E8EAEF] text-end"
+              placeholder="مثال: مطار القاهرة، ترمينال 2"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 shrink-0 rounded-xl px-3 text-xs font-semibold"
+              disabled={geoDropBusy}
+              onClick={() => void runGeocodeDropoff()}
+            >
+              {geoDropBusy ? '…' : 'بحث'}
+            </Button>
+          </div>
         </div>
 
         <p className={cn('text-xs leading-relaxed', muted)}>
@@ -548,13 +658,23 @@ function DriverPickCard({ driver, tripFareEstimate, distanceKm, onAccept }) {
   )
 }
 
-function SelectDriverSheet({ drivers, tripFareEstimate, distanceKm, onBackToMatching, onAcceptDriver, onCancelFlow }) {
+function SelectDriverSheet({
+  drivers,
+  tripFareEstimate,
+  distanceKm,
+  bookingMeta,
+  onBackToMatching,
+  onAcceptDriver,
+  onCancelFlow,
+}) {
+  const nd = bookingMeta?.negotiating_driver_id
+  const nf = bookingMeta?.negotiated_fare
   return (
     <>
       <button
         type="button"
         onClick={onCancelFlow}
-        className="pointer-events-auto absolute end-5 top-[calc(var(--safe-top)+0.75rem)] z-[52] flex items-center gap-2 rounded-full border border-[#ff383c]/25 bg-white/95 px-3 py-2 shadow-md"
+        className="pointer-events-auto absolute start-5 top-[calc(var(--safe-top)+0.75rem)] z-[52] flex items-center gap-2 rounded-full border border-[#ff383c]/25 bg-white/95 px-3 py-2 shadow-md"
       >
         <span className="text-base font-medium text-black">إلغاء الطلب</span>
         <X className="size-5 text-[#ff383c]" strokeWidth={2} />
@@ -564,6 +684,21 @@ function SelectDriverSheet({ drivers, tripFareEstimate, distanceKm, onBackToMatc
         <p className={cn('px-2 text-xs leading-relaxed', muted)}>
           الأجرة المعروضة هي <strong className="text-ink">تقدير الرحلة</strong> من المسافة وقواعد التسعير، وليست سعر فئة ثابت من بطاقة السائق.
         </p>
+        {!drivers.length && nd != null && nf != null ? (
+          <div className="mx-2 rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-center text-sm font-medium text-amber-950">
+            سائق يعرض سعر تفاوض <span className="tabular-nums">E£ {nf}</span>. اضغط «تحديث القائمة» أو ارجع للمطابقة حتى يظهر في القائمة، ثم اضغط قبول.
+            <div className="mt-3 flex flex-col gap-2">
+              <Button type="button" className="h-11 rounded-xl" variant="outline" onClick={onBackToMatching}>
+                تحديث القائمة (العودة للمطابقة)
+              </Button>
+            </div>
+          </div>
+        ) : null}
+        {!drivers.length && !(nd != null && nf != null) ? (
+          <div className="mx-2 rounded-2xl border border-[#E8EAEF] bg-[#fafafa] px-4 py-6 text-center text-sm text-[#52627A]">
+            لا يوجد كباتن ضمن النطاق حالياً. جرّب توسيع البحث من الخادم أو غيّر نقطة الانطلاق.
+          </div>
+        ) : null}
         {drivers.map((d) => (
           <DriverPickCard
             key={d.id}
@@ -652,6 +787,10 @@ export default function Home() {
   const [bootLoading, setBootLoading] = useState(() => getActiveRole() === 'rider')
   const [actionLoading, setActionLoading] = useState(false)
   const [locationBusy, setLocationBusy] = useState(false)
+  const [mapRecenterTick, setMapRecenterTick] = useState(0)
+  const bumpMapRecenter = useCallback(() => {
+    setMapRecenterTick((n) => n + 1)
+  }, [])
 
   const applyDeviceLocation = useCallback(async () => {
     setLocationBusy(true)
@@ -669,11 +808,12 @@ export default function Home() {
       setPickup(pickupPoint)
       setDropoff(offsetPoint(pickupPoint, 0.02, 0.02, 'وجهة مقترحة'))
       setMapMode('pickup')
+      bumpMapRecenter()
       toast.success('تم ضبط الانطلاق من موقعك')
     } finally {
       setLocationBusy(false)
     }
-  }, [])
+  }, [bumpMapRecenter])
 
   useEffect(() => {
     if (role !== 'rider') return
@@ -724,6 +864,7 @@ export default function Home() {
             }
             setPickup(pickupPoint)
             setDropoff(offsetPoint(pickupPoint, 0.02, 0.02, 'وجهة مقترحة'))
+            bumpMapRecenter()
           }
         }
       } catch (e) {
@@ -735,7 +876,7 @@ export default function Home() {
     return () => {
       cancelled = true
     }
-  }, [role])
+  }, [role, bumpMapRecenter])
 
   const applySavedAddresses = useCallback(() => {
     const a0 = addresses[0]
@@ -838,8 +979,6 @@ export default function Home() {
     }
   }, [vehicleTypes, selectedVehicleIdx, pickup, dropoff])
 
-  const goDrivers = useCallback(() => setStep('drivers'), [])
-
   const refreshNearDrivers = useCallback(async () => {
     if (!bookingId || !pickup) return
     try {
@@ -855,11 +994,27 @@ export default function Home() {
       if (ok && Array.isArray(drivers) && drivers.length) {
         setNearDrivers(drivers)
         if (bookingSnap && typeof bookingSnap === 'object') setBookingOfferMeta(bookingSnap)
+        return
+      }
+      if (
+        !ok &&
+        bookingSnap &&
+        String(bookingSnap.status) === 'negotiating' &&
+        bookingSnap.negotiating_driver_id != null
+      ) {
+        if (typeof bookingSnap === 'object') setBookingOfferMeta(bookingSnap)
       }
     } catch {
       /* keep list */
     }
   }, [bookingId, pickup])
+
+  const goDrivers = useCallback(() => {
+    setStep('drivers')
+    window.setTimeout(() => {
+      refreshNearDrivers()
+    }, 0)
+  }, [refreshNearDrivers])
 
   useEffect(() => {
     if ((step !== 'matching' && step !== 'drivers') || !bookingId) return undefined
@@ -947,6 +1102,7 @@ export default function Home() {
           mapMode={mapMode}
           onPickupChange={setPickup}
           onDropoffChange={setDropoff}
+          recenterTick={mapRecenterTick}
         />
       ) : (
         <MapBg src={mapSrc} />
@@ -954,6 +1110,7 @@ export default function Home() {
       {step === 'drivers' ? <div className="pointer-events-none absolute inset-0 z-[1] bg-black/25" aria-hidden /> : null}
       {step !== 'plan' && step !== 'drivers' ? <FloatingRouteCard pickup={pickup} dropoff={dropoff} /> : null}
       {step !== 'plan' && step !== 'drivers' ? <PinCluster /> : null}
+      {step === 'matching' || (step === 'offers' && actionLoading) ? <SearchRadarPulse /> : null}
 
       {step === 'plan' ? (
         <RoutePlanSheet
@@ -968,6 +1125,9 @@ export default function Home() {
           tripDistanceKm={tripDistanceKm}
           onUseMyLocation={applyDeviceLocation}
           locationBusy={locationBusy}
+          onPickupPatch={(patch) => setPickup((p) => ({ ...p, ...patch }))}
+          onDropoffPatch={(patch) => setDropoff((d) => ({ ...d, ...patch }))}
+          onRequestMapRecenter={bumpMapRecenter}
         />
       ) : null}
       {step === 'offers' ? (
@@ -999,7 +1159,11 @@ export default function Home() {
           drivers={nearDrivers}
           tripFareEstimate={fare}
           distanceKm={tripDistanceKm}
-          onBackToMatching={() => setStep('matching')}
+          bookingMeta={bookingOfferMeta}
+          onBackToMatching={() => {
+            setStep('matching')
+            refreshNearDrivers()
+          }}
           onAcceptDriver={acceptDriver}
           onCancelFlow={cancelFlow}
         />
