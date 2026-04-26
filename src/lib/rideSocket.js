@@ -1,11 +1,9 @@
 import { io } from 'socket.io-client'
 import { getSessionRiderToken } from '@/lib/sessionTokens'
 
-/** Match `vercel.json` API host when the SPA is on `*.vercel.app` and env is empty. */
-const DEFAULT_PROD_API_HOST = 'https://nodeteam.site'
-
 /**
- * Origin for Socket.IO (HTTP API may use Vercel rewrites while WS must hit the Node host).
+ * Socket.IO must use the **same origin** as the HTML when you proxy `/socket.io` (e.g. Vercel → API).
+ * Connecting straight to the API host from another site hits CORS on Engine.IO polling.
  */
 export function resolveSocketBaseUrl() {
   const fromEnv = String(import.meta.env.VITE_SOCKET_ORIGIN || import.meta.env.VITE_API_ORIGIN || '')
@@ -13,10 +11,8 @@ export function resolveSocketBaseUrl() {
     .replace(/\/$/, '')
   if (fromEnv) return fromEnv
   if (import.meta.env.DEV) return ''
-  if (typeof window !== 'undefined' && /\.vercel\.app$/i.test(window.location.hostname)) {
-    return DEFAULT_PROD_API_HOST
-  }
-  return typeof window !== 'undefined' ? window.location.origin.replace(/\/$/, '') : ''
+  if (typeof window !== 'undefined') return window.location.origin.replace(/\/$/, '')
+  return ''
 }
 
 /**
@@ -41,7 +37,7 @@ export function connectRideTrackingSocket({ rideId, onDriverLocation, onConnecte
     reconnectionAttempts: 8,
     reconnectionDelay: 1200,
     timeout: 20000,
-    ...(token ? { auth: { token }, query: { token } } : {}),
+    ...(token ? { auth: { token } } : {}),
   })
 
   const onLoc = (payload) => {

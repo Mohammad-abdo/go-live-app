@@ -11,11 +11,9 @@ const origin = String(import.meta.env.VITE_API_ORIGIN || '')
   .trim()
   .replace(/\/+$/, '')
 
-if (import.meta.env.PROD && !origin) {
+if (import.meta.env.DEV && !origin) {
   // eslint-disable-next-line no-console
-  console.warn(
-    '[go-live-tester] VITE_API_ORIGIN is empty. Built app will call /apimobile on whatever host serves this HTML. If that host has no API, set VITE_API_ORIGIN to your API origin (e.g. https://nodeteam.site) before `npm run build`.',
-  )
+  console.info('[go-live-tester] VITE_API_ORIGIN empty — same-origin /apimobile (Vite proxy).')
 }
 
 export const api = axios.create({
