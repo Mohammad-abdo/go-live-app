@@ -7,7 +7,17 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const apiTarget = (env.VITE_API_PROXY_TARGET || 'http://localhost:5000').replace(/\/$/, '')
+  /** Dev server + `vite preview`: forward API paths to this host (not the SPA root — that may 404). */
+  const apiTarget = (
+    env.VITE_API_PROXY_TARGET ||
+    env.VITE_API_ORIGIN ||
+    'http://localhost:5000'
+  ).replace(/\/$/, '')
+
+  const proxy = {
+    '/apimobile': { target: apiTarget, changeOrigin: true, secure: true },
+    '/api': { target: apiTarget, changeOrigin: true, secure: true },
+  }
 
   return {
     plugins: [react()],
@@ -18,10 +28,12 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 5180,
-      proxy: {
-        '/apimobile': { target: apiTarget, changeOrigin: true },
-        '/api': { target: apiTarget, changeOrigin: true },
-      },
+      proxy,
+    },
+    /** Without this, `vite preview` has no proxy and `/apimobile/*` 404s on the preview origin. */
+    preview: {
+      port: 4173,
+      proxy,
     },
   }
 })
