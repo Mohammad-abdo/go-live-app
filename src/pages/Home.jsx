@@ -816,7 +816,14 @@ export default function Home() {
         toast.error(
           `${backendMsg} جرّب نقطة انطلاق أقرب لمنطقة فيها كباتن، أو راجع إعدادات نطاق البحث في الخادم (radius_km).`,
         )
-        await rider.cancelTrip({ booking_id: bid }).catch(() => {})
+        try {
+          await rider.cancelTrip({ booking_id: bid })
+        } catch (e) {
+          toast.error(`تعذر إلغاء الحجز على الخادم: ${getErrorMessage(e)} — يمكنك المحاولة من جديد.`)
+          setBookingId(bid)
+          setBookingOfferMeta(null)
+          return
+        }
         setBookingId(null)
         setBookingOfferMeta(null)
         return
@@ -840,6 +847,11 @@ export default function Home() {
         booking_id: bookingId,
         booking_location: { lat: pickup.lat, lng: pickup.lng },
       })
+      if (bookingSnap && String(bookingSnap.status) === 'cancelled') {
+        setNearDrivers([])
+        setBookingOfferMeta(bookingSnap)
+        return
+      }
       if (ok && Array.isArray(drivers) && drivers.length) {
         setNearDrivers(drivers)
         if (bookingSnap && typeof bookingSnap === 'object') setBookingOfferMeta(bookingSnap)
@@ -880,32 +892,42 @@ export default function Home() {
 
   const confirmCancelTrip = useCallback(async () => {
     setCancelOpen(false)
-    if (bookingId) {
-      try {
-        await rider.cancelTrip({ booking_id: bookingId })
-        toast.message('تم إلغاء الطلب')
-      } catch (e) {
-        toast.error(getErrorMessage(e))
-      }
+    if (!bookingId) {
+      setNearDrivers([])
+      setBookingOfferMeta(null)
+      setStep('offers')
+      return
     }
-    setBookingId(null)
-    setNearDrivers([])
-    setBookingOfferMeta(null)
-    setStep('offers')
+    const id = bookingId
+    try {
+      await rider.cancelTrip({ booking_id: id })
+      toast.message('تم إلغاء الطلب')
+      setBookingId(null)
+      setNearDrivers([])
+      setBookingOfferMeta(null)
+      setStep('offers')
+    } catch (e) {
+      toast.error(getErrorMessage(e))
+    }
   }, [bookingId])
 
   const cancelFlow = useCallback(async () => {
-    if (bookingId) {
-      try {
-        await rider.cancelTrip({ booking_id: bookingId })
-      } catch {
-        /* ignore */
-      }
+    if (!bookingId) {
+      setNearDrivers([])
+      setBookingOfferMeta(null)
+      setStep('plan')
+      return
     }
-    setBookingId(null)
-    setNearDrivers([])
-    setBookingOfferMeta(null)
-    setStep('plan')
+    const id = bookingId
+    try {
+      await rider.cancelTrip({ booking_id: id })
+      setBookingId(null)
+      setNearDrivers([])
+      setBookingOfferMeta(null)
+      setStep('plan')
+    } catch (e) {
+      toast.error(getErrorMessage(e))
+    }
   }, [bookingId])
 
   if (role === 'driver') {

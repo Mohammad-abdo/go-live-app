@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Banknote, Clock, LocateFixed, MapPin, Search, TicketPercent } from 'lucide-react'
@@ -181,6 +181,24 @@ export default function DriverHome() {
       setRides([])
     }
   }, [coords, loadNegotiating])
+
+  const fetchNearbyRef = useRef(fetchNearby)
+  fetchNearbyRef.current = fetchNearby
+
+  useEffect(() => {
+    const driverId = getDriverUserIdFromSession()
+    if (!driverId) return undefined
+    return connectDriverAvailableRidesSocket({
+      driverId,
+      onPendingBookingCancelled: (payload) => {
+        const rid = payload?.rideRequestId ?? payload?.booking_id
+        if (rid != null) {
+          setRides((prev) => prev.filter((r) => Number(r.id) !== Number(rid)))
+        }
+        fetchNearbyRef.current?.().catch(() => {})
+      },
+    })
+  }, [])
 
   useEffect(() => {
     loadStatus()

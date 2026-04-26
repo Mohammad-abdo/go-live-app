@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client'
 import { normalizeEnvOrigin } from '@/lib/envOrigin'
-import { getSessionRiderToken } from '@/lib/sessionTokens'
+import { getSessionDriverToken, getSessionRiderToken } from '@/lib/sessionTokens'
 
 /**
  * Socket.IO must use the **same origin** as the HTML when you proxy `/socket.io` (e.g. Vercel → API).
@@ -97,6 +97,45 @@ export function connectRideTrackingSocket({
  * @param {(payload: { rideRequestId?: number, reason?: string | null }) => void} [opts.onTripCancelled]
  * @returns {() => void}
  */
+/**
+ * Captain home: join `driver-{id}` and refresh when a rider cancels a still-pending booking (no assignee).
+ * @param {object} opts
+ * @param {number} opts.driverId
+ * @param {(payload: { rideRequestId?: number, booking_id?: number }) => void} [opts.onPendingBookingCancelled]
+ * @returns {() => void}
+ */
+export function connectDriverAvailableRidesSocket({ driverId, onPendingBookingCancelled }) {
+  const base = resolveSocketBaseUrl()
+  const token = getSessionDriverToken()
+  if (!driverId || !token) {
+    return () => {}
+  }
+
+  const socket = io(base || undefined, {
+    path: '/socket.io',
+    transports: ['polling', 'websocket'],
+    reconnectionAttempts: 8,
+    reconnectionDelay: 1200,
+    timeout: 20000,
+    auth: { token },
+  })
+
+  const onPendingCancel = (payload) => {
+    onPendingBookingCancelled?.(payload)
+  }
+
+  socket.on('connect', () => {
+    socket.emit('join-driver-room', driverId)
+  })
+  socket.on('pending-booking-cancelled', onPendingCancel)
+
+  return () => {
+    socket.off('pending-booking-cancelled', onPendingCancel)
+    socket.removeAllListeners()
+    socket.disconnect()
+  }
+}
+
 export function connectRiderUserSocket({ userId, onRideAssigned, onTripCompleted, onTripCancelled }) {
   const base = resolveSocketBaseUrl()
   const token = getSessionRiderToken()

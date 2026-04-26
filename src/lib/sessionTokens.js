@@ -88,3 +88,8 @@ export function getUserIdFromJwt(token) {
 export function getRiderUserIdFromSession() {
   return getUserIdFromJwt(getSessionRiderToken())
 }
+
+/** @returns {number | null} */
+export function getDriverUserIdFromSession() {
+  return getUserIdFromJwt(getSessionDriverToken())
+}
