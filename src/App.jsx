@@ -15,6 +15,10 @@ import Support from '@/pages/Support'
 import Addresses from '@/pages/Addresses'
 import TripChat from '@/pages/TripChat'
 import HelpCenter from '@/pages/HelpCenter'
+import PersonalInfo from '@/pages/PersonalInfo'
+import Wallet from '@/pages/Wallet'
+import Language from '@/pages/Language'
+import Legal from '@/pages/Legal'
 import Signup from '@/pages/Signup'
 import VerifyOtp from '@/pages/VerifyOtp'
 
@@ -46,6 +50,10 @@ export default function App() {
           <Route path="addresses" element={<Addresses />} />
           <Route path="chat" element={<TripChat />} />
           <Route path="help" element={<HelpCenter />} />
+          <Route path="personal" element={<PersonalInfo />} />
+          <Route path="wallet" element={<Wallet />} />
+          <Route path="language" element={<Language />} />
+          <Route path="legal" element={<Legal />} />
         </Route>
       </Routes>
       <Toaster richColors position="top-center" />

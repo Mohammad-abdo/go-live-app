@@ -13,7 +13,7 @@ function AppShellInner() {
 
   return (
     <div className="mx-auto flex min-h-svh max-w-md flex-col bg-[#fafafa]">
-      <SlideOver open={menuOpen} onClose={() => setMenuOpen(false)} title="القائمة">
+      <SlideOver open={menuOpen} onClose={() => setMenuOpen(false)} title="القائمة" hideTitle>
         <MenuDrawerContent onNavigate={() => setMenuOpen(false)} />
       </SlideOver>
       <SlideOver open={notificationsOpen} onClose={() => setNotificationsOpen(false)} title="الإشعارات">

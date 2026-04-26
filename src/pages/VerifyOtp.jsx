@@ -97,12 +97,13 @@ export default function VerifyOtp() {
             <Input
               id="otp"
               value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              className="h-12 rounded-xl border-[#E8EAEF] bg-[#fafafa] text-center text-lg font-semibold tracking-[0.35em] focus-visible:ring-primary/30"
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              className="h-14 rounded-xl border-[#E8EAEF] bg-[#fafafa] text-center text-xl font-semibold tracking-[0.45em] focus-visible:ring-primary/30"
               dir="ltr"
               placeholder="••••••"
               autoComplete="one-time-code"
               inputMode="numeric"
+              maxLength={6}
             />
           </div>
           <Button type="submit" className="h-12 w-full rounded-xl text-base font-semibold shadow-sm" disabled={loading || resendBoot}>

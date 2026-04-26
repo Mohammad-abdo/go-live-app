@@ -122,9 +122,7 @@ function TripInProgressSheet({ ride, role }) {
           💵
         </span>
       </div>
-      <div className="flex h-9 items-center justify-center pb-2">
-        <div className="h-1 w-28 rounded-full bg-[#1b294b]" />
-      </div>
+   
     </div>
   )
 }
