@@ -9,7 +9,11 @@ import { getActiveRole } from '@/lib/sessionTokens'
 import { getErrorMessage } from '@/lib/apiResponse'
 import * as rider from '@/services/riderService'
 import TripMapPicker from '@/components/map/TripMapPicker'
-import { computeKmBaseEgp, computeTripFareEgp, haversineDistanceKm } from '@/lib/tripFare'
+import {
+  computeFallbackDistanceOnlyFare,
+  computeFareFromPricingRule,
+  haversineDistanceKm,
+} from '@/lib/tripFare'
 
 const ink = 'text-[#0A0C0F]'
 const muted = 'text-[#52627A]'
@@ -17,15 +21,40 @@ const subtle = 'text-[#8595AD]'
 
 const CAIRO = { lat: 30.0444, lng: 31.2357, address: 'القاهرة، مصر' }
 
-/** Vehicle type `price` (or `markup_percent` / `surcharge_percent`) = % added on top of distance × rate. */
-function vehicleCategoryMarkupPercent(item) {
-  if (!item) return 0
-  const n = Number(item.markup_percent ?? item.surcharge_percent ?? item.price)
-  return Number.isFinite(n) && n >= 0 ? n : 0
+/** Uses admin `pricingRule` from vehicle-types API; env rate only if rule missing. */
+function estimateVehicleFare(vehicle, distanceKm) {
+  const fromRule = computeFareFromPricingRule(distanceKm, vehicle?.pricingRule)
+  if (fromRule != null) return fromRule
+  const n = Number(import.meta.env.VITE_TRIP_PRICE_PER_KM)
+  const per = Number.isFinite(n) && n > 0 ? n : 8
+  return computeFallbackDistanceOnlyFare(distanceKm, per)
 }
 
 function offsetPoint(p, dLat, dLng, address) {
   return { lat: p.lat + dLat, lng: p.lng + dLng, address }
+}
+
+function formatCurrentLocationAddress(lat, lng) {
+  return `موقعي الحالي (${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)})`
+}
+
+/** @returns {Promise<{ lat: number, lng: number } | null>} */
+function readGeolocationOnce() {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    return Promise.resolve(null)
+  }
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        resolve({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        })
+      },
+      () => resolve(null),
+      { enableHighAccuracy: true, maximumAge: 60_000, timeout: 12_000 },
+    )
+  })
 }
 
 /** @param {Record<string, unknown>|null|undefined} addr */
@@ -169,15 +198,21 @@ function OffersSheet({
   onSelectIdx,
   fare,
   distanceKm,
-  pricePerKm,
+  fallbackPerKm,
   onSearchDrivers,
   onBack,
   loading,
 }) {
   const v = vehicles[selectedIdx]
   const nameAr = v?.nameAr || v?.name || 'مركبة'
-  const catPct = vehicleCategoryMarkupPercent(v)
-  const baseEgp = computeKmBaseEgp(distanceKm, pricePerKm)
+  const rule = v?.pricingRule
+  const baseDist = rule && Number(rule.baseDistance) > 0 ? Number(rule.baseDistance) : 5
+  const extraKm = Math.max(0, distanceKm - baseDist)
+  const breakdownLine = rule
+    ? `أساس ${Number(rule.baseFare).toFixed(0)} ج + ${extraKm.toFixed(1)} كم × ${Number(rule.perDistanceAfterBase).toFixed(1)} ج/كم (بعد ${baseDist} كم)${
+        Number(rule.minimumFare) > 0 ? ` · حد أدنى ${Number(rule.minimumFare).toFixed(0)} ج` : ''
+      }`
+    : `≈ ${distanceKm.toFixed(1)} كم × ${fallbackPerKm} ج/كم (تقدير بدون قاعدة تسعير)`
   return (
     <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-[50] flex max-h-[78%] flex-col">
       <div className="flex justify-end px-5 pb-2">
@@ -199,8 +234,7 @@ function OffersSheet({
             vehicles.map((item, idx) => {
               const selected = idx === selectedIdx
               const label = item.nameAr || item.name || item.type
-              const pct = vehicleCategoryMarkupPercent(item)
-              const legFare = computeTripFareEgp(distanceKm, pricePerKm, pct)
+              const legFare = estimateVehicleFare(item, distanceKm)
               return (
                 <button
                   key={item.vehicle_id ?? idx}
@@ -213,7 +247,9 @@ function OffersSheet({
                 >
                   <div className="flex shrink-0 flex-col items-end self-center">
                     <p className={cn('text-sm font-semibold tabular-nums', ink)}>E£ {legFare}</p>
-                    <p className={cn('text-[10px] tabular-nums', subtle)}>+{pct}%</p>
+                    {item.pricingRule ? (
+                      <p className={cn('max-w-[7rem] text-[10px] leading-tight text-primary/90')}>من لوحة التحكم</p>
+                    ) : null}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className={cn('text-sm font-medium', ink)}>{label}</p>
@@ -236,10 +272,7 @@ function OffersSheet({
                 <div className="min-w-0 flex-1 text-end">
                   <p className={cn('text-sm font-medium', ink)}>الأجرة المقدرة</p>
                   <p className={cn('mt-1 text-2xl font-semibold tabular-nums', ink)}>E£ {fare}</p>
-                  <p className={cn('mt-1 text-xs leading-relaxed', muted)}>
-                    ≈ {distanceKm.toFixed(1)} كم × {pricePerKm} ج/كم = {baseEgp} ج أساساً
-                    {catPct > 0 ? ` · +${catPct}% فئة` : ''}
-                  </p>
+                  <p className={cn('mt-1 text-xs leading-relaxed', muted)}>{breakdownLine}</p>
                 </div>
                 <div className="flex h-10 w-20 shrink-0 items-center justify-center rounded-xl bg-[#F0F2F5] text-2xl">
                   🚗
@@ -538,6 +571,18 @@ export default function Home() {
           setPickup(CAIRO)
           setDropoff(offsetPoint(CAIRO, 0.02, 0.02, 'وجهة بالقاهرة (مقترحة)'))
         }
+
+        /** Pickup = device location when we are not using two saved addresses (full route). */
+        if (!cancelled && list.length < 2) {
+          const coords = await readGeolocationOnce()
+          if (!cancelled && coords) {
+            const lat = coords.lat
+            const lng = coords.lng
+            const pickupPoint = { lat, lng, address: formatCurrentLocationAddress(lat, lng) }
+            setPickup(pickupPoint)
+            setDropoff(offsetPoint(pickupPoint, 0.02, 0.02, 'وجهة مقترحة'))
+          }
+        }
       } catch (e) {
         if (!cancelled) toast.error(getErrorMessage(e))
       } finally {
@@ -567,7 +612,7 @@ export default function Home() {
     toast.message('تم تطبيق أول عنوانين')
   }, [addresses])
 
-  const pricePerKm = useMemo(() => {
+  const fallbackPerKm = useMemo(() => {
     const n = Number(import.meta.env.VITE_TRIP_PRICE_PER_KM)
     return Number.isFinite(n) && n > 0 ? n : 8
   }, [])
@@ -579,8 +624,8 @@ export default function Home() {
 
   const fare = useMemo(() => {
     const v = vehicleTypes[selectedVehicleIdx]
-    return computeTripFareEgp(tripDistanceKm, pricePerKm, vehicleCategoryMarkupPercent(v))
-  }, [vehicleTypes, selectedVehicleIdx, tripDistanceKm, pricePerKm])
+    return estimateVehicleFare(v, tripDistanceKm)
+  }, [vehicleTypes, selectedVehicleIdx, tripDistanceKm])
 
   const mapSrc = useMemo(() => {
     if (step === 'plan') return FIGMA_ASSETS.mapRoutePlan
@@ -732,7 +777,7 @@ export default function Home() {
           onSelectIdx={setSelectedVehicleIdx}
           fare={fare}
           distanceKm={tripDistanceKm}
-          pricePerKm={pricePerKm}
+          fallbackPerKm={fallbackPerKm}
           onSearchDrivers={searchDrivers}
           onBack={goPlan}
           loading={actionLoading}

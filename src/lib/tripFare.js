@@ -15,8 +15,43 @@ export function haversineDistanceKm(lat1, lng1, lat2, lng2) {
 }
 
 /**
- * Trip fare: (distance × price per km) × (1 + categoryPercent/100).
- * `categoryPercent` comes from vehicle type `price` (treated as % markup, not flat EGP).
+ * Fare from admin **PricingRule** (same logic as backend `calculateTripPrice` distance leg; no time/wait).
+ * @param {number} distanceKm
+ * @param {{ baseFare?: number, baseDistance?: number, minimumFare?: number, perDistanceAfterBase?: number } | null | undefined} rule — from `GET .../booking/vehicle-types/:id` → `pricingRule`
+ * @returns {number | null} rounded EGP, or `null` if no rule (caller may use env fallback)
+ */
+export function computeFareFromPricingRule(distanceKm, rule) {
+  if (!rule || typeof rule !== 'object') return null
+  const d = Number(distanceKm)
+  if (!Number.isFinite(d) || d < 0) return 0
+  const baseFare = Number(rule.baseFare) || 0
+  const bd = Number(rule.baseDistance)
+  const baseDist = Number.isFinite(bd) && bd > 0 ? bd : 5
+  const perKm = Number(rule.perDistanceAfterBase) || 0
+  const minFare = Number(rule.minimumFare) || 0
+
+  let distanceCharge = 0
+  if (d > baseDist) {
+    distanceCharge = (d - baseDist) * perKm
+  }
+  let total = baseFare + distanceCharge
+  if (minFare > 0 && total < minFare) {
+    total = minFare
+  }
+  return Math.max(0, Math.round(total))
+}
+
+/** Fallback when API sends no `pricingRule` (dev only). Uses flat EGP/km. */
+export function computeFallbackDistanceOnlyFare(distanceKm, pricePerKm) {
+  const d = Number(distanceKm)
+  const per = Number(pricePerKm)
+  if (!Number.isFinite(d) || d < 0) return 0
+  if (!Number.isFinite(per) || per < 0) return 0
+  return Math.max(0, Math.round(d * per))
+}
+
+/**
+ * @deprecated — kept for any old call sites; prefer `computeFareFromPricingRule` + admin `pricingRule`.
  */
 export function computeTripFareEgp(distanceKm, pricePerKm, categoryPercent) {
   const d = Number(distanceKm)
@@ -29,7 +64,7 @@ export function computeTripFareEgp(distanceKm, pricePerKm, categoryPercent) {
   return Math.max(0, Math.round(base * mul))
 }
 
-/** Base leg cost before category markup (for UI breakdown). */
+/** @deprecated */
 export function computeKmBaseEgp(distanceKm, pricePerKm) {
   const d = Number(distanceKm)
   const per = Number(pricePerKm)
