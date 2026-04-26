@@ -11,6 +11,10 @@ export const FIGMA_DRIVER_DESIGN = {
   driverCanvasNodeId: '146:4074',
   /** Reference frame: map + stats + stacked requests (online) */
   driverHomeOnlineFrameId: '147:6164',
+  /** Active trip — map, rider row, «وصلت لنقطة الالتقاء», chat notes, cancel */
+  driverActiveTripFrameId: '166:1165',
+  /** Trips history list (rows with status / pins) */
+  driverTripsHistoryFrameId: '258:7519',
   devModeUrl:
     'https://www.figma.com/design/Dr04r0K9dWskmkfNErc51V/Go-Back?node-id=146-4074&m=dev',
 }

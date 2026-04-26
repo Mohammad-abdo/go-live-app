@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { ChevronLeft, Clock, MessageSquareText, Phone } from 'lucide-react'
+import { ChevronLeft, Clock, MessageSquareText, Navigation, Phone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { FIGMA_ASSETS } from '@/lib/figmaAssets'
 import { cn } from '@/lib/utils'
@@ -10,7 +10,43 @@ import { getErrorMessage } from '@/lib/apiResponse'
 import * as rider from '@/services/riderService'
 import * as driver from '@/services/driverService'
 
-const ACTIVE = new Set(['pending', 'searching', 'accepted', 'arrived', 'arrived_at_pickup', 'in_progress', 'ongoing', 'started'])
+const ACTIVE = new Set([
+  'pending',
+  'searching',
+  'negotiating',
+  'accepted',
+  'arrived',
+  'arrived_at_pickup',
+  'in_progress',
+  'ongoing',
+  'started',
+])
+
+function driverTripStatusAr(s) {
+  const m = {
+    pending: 'قيد الانتظار',
+    searching: 'جاري البحث',
+    negotiating: 'تفاوض على السعر',
+    accepted: 'مقبولة',
+    arrived: 'وصلت للراكب',
+    arrived_at_pickup: 'وصلت للراكب',
+    started: 'جارية',
+    in_progress: 'جارية',
+    ongoing: 'جارية',
+    completed: 'مكتملة',
+    cancelled: 'ملغاة',
+  }
+  return m[String(s)] || String(s || '')
+}
+
+function formatTripWhen(iso) {
+  if (!iso) return ''
+  try {
+    return new Date(iso).toLocaleString('ar-EG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  } catch {
+    return ''
+  }
+}
 
 function MapBg({ src }) {
   const [bad, setBad] = useState(false)
@@ -212,17 +248,34 @@ export default function Trips() {
           <div className="space-y-2">
             {role === 'driver'
               ? driverRides.map((r) => (
-                  <div
+                  <Link
                     key={r.id}
+                    to={`/app/trip/${r.id}`}
                     className={cn(
-                      'rounded-[16px] border border-[#F0F2F5] bg-white p-3 text-end shadow-sm',
+                      'block rounded-[20px] border border-[#F0F2F5] bg-white p-3 text-end shadow-[0_6px_20px_rgba(10,12,15,0.06)] transition-colors hover:border-primary/25 hover:bg-[#fafafa]',
                       highlightId === r.id && 'ring-2 ring-primary',
                     )}
                   >
-                    <p className="text-sm font-semibold text-ink">رحلة #{r.id}</p>
-                    <p className="text-xs text-[#52627A]">{r.status}</p>
-                    <p className="mt-1 text-sm text-ink">{r.startAddress || '—'}</p>
-                  </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5" aria-hidden>
+                        <span className="size-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-100" />
+                        <span className="size-2.5 rounded-full bg-red-500 ring-2 ring-red-100" />
+                      </div>
+                      <p className="text-sm font-bold text-ink">#{r.id}</p>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
+                      <span className="rounded-full bg-[#F4F6FA] px-2.5 py-0.5 text-[11px] font-semibold text-[#52627A]">
+                        {driverTripStatusAr(r.status)}
+                      </span>
+                      {r.createdAt ? (
+                        <span className="text-[11px] text-[#8595AD]">{formatTripWhen(r.createdAt)}</span>
+                      ) : null}
+                    </div>
+                    <p className="mt-2 line-clamp-2 text-sm leading-snug text-[#292d32]">{r.startAddress || '—'}</p>
+                    {r.totalAmount != null ? (
+                      <p className="mt-2 text-end text-sm font-semibold tabular-nums text-primary">{r.totalAmount} ج.م</p>
+                    ) : null}
+                  </Link>
                 ))
               : past.map((b) => (
                   <button
@@ -275,19 +328,27 @@ export default function Trips() {
       ) : null}
 
       {tab === 'current' && role === 'driver' ? (
-        <div className="mt-4 space-y-2">
+        <div className="mt-4 space-y-3">
           {driverRides
             .filter((r) => ACTIVE.has(r.status))
             .map((r) => (
-              <div key={r.id} className="rounded-[16px] border border-[#F0F2F5] bg-white p-3 text-end shadow-sm">
-                <p className="text-sm font-semibold">#{r.id} — {r.status}</p>
-                <p className="text-xs text-[#52627A]">{r.startAddress}</p>
-                <div className="mt-2 flex flex-wrap justify-end gap-2">
-                  <Button asChild variant="link" className="h-auto p-0 text-primary">
-                    <Link to={`/app/trip/${r.id}`}>تفاصيل الرحلة</Link>
-                  </Button>
-                  <Button asChild variant="link" className="h-auto p-0 text-primary">
+              <div
+                key={r.id}
+                className="rounded-[20px] border border-[#f4f4f4] bg-white p-3 text-end shadow-[0_6px_20px_rgba(10,12,15,0.06)]"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="rounded-full bg-[#F4F6FA] px-2.5 py-0.5 text-[11px] font-semibold text-primary">
+                    {driverTripStatusAr(r.status)}
+                  </span>
+                  <p className="text-sm font-bold text-ink">#{r.id}</p>
+                </div>
+                <p className="mt-2 line-clamp-2 text-sm text-[#292d32]">{r.startAddress || '—'}</p>
+                <div className="mt-3 flex flex-wrap justify-end gap-2 border-t border-[#F0F2F5] pt-3">
+                  <Button asChild variant="outline" size="sm" className="rounded-full border-[#E8EAEF] font-semibold">
                     <Link to={`/app/chat?rideId=${r.id}`}>محادثة</Link>
+                  </Button>
+                  <Button asChild size="sm" className="rounded-full bg-primary font-semibold">
+                    <Link to={`/app/trip/${r.id}`}>تفاصيل الرحلة</Link>
                   </Button>
                 </div>
               </div>

@@ -43,6 +43,29 @@ function shortPlace(addr) {
   return first || addr
 }
 
+/** Backend may return `estimatedPrice` as a number or `{ estimatedTotal }`. */
+function numericEstimatedFare(est) {
+  if (est == null) return null
+  if (typeof est === 'object' && est.estimatedTotal != null) return Number(est.estimatedTotal)
+  const n = Number(est)
+  return Number.isFinite(n) ? n : null
+}
+
+function displayTripFare(pricing) {
+  if (!pricing) return null
+  const fromEst = numericEstimatedFare(pricing.estimatedPrice)
+  if (fromEst != null && fromEst > 0) return fromEst
+  const t = pricing.totalAmount
+  if (t != null && Number(t) > 0) return Number(t)
+  return null
+}
+
+/** Optional client radius (km) for GET …/rides/available — matches backend `radius` (max 100). */
+const CLIENT_RADIUS_KM = (() => {
+  const v = parseFloat(String(import.meta.env.VITE_DRIVER_AVAILABLE_RIDES_RADIUS_KM || '').trim())
+  return Number.isFinite(v) && v >= 1 ? Math.min(100, v) : 25
+})()
+
 function readGeolocation() {
   if (typeof navigator === 'undefined' || !navigator.geolocation) return Promise.resolve(null)
   return new Promise((resolve) => {
@@ -88,6 +111,10 @@ export default function DriverHome() {
   const [actionId, setActionId] = useState(null)
   const [profile, setProfile] = useState(null)
   const [ratingSummary, setRatingSummary] = useState({ averageRating: 0 })
+  const [searchRadiusKm, setSearchRadiusKm] = useState(null)
+  const [negotiatingRides, setNegotiatingRides] = useState([])
+  const [negotiateId, setNegotiateId] = useState(null)
+  const [negotiateAmount, setNegotiateAmount] = useState('')
 
   const loadStatus = useCallback(async () => {
     try {
@@ -95,6 +122,15 @@ export default function DriverHome() {
       setOnline(Boolean(s?.isOnline))
     } catch {
       setOnline(false)
+    }
+  }, [])
+
+  const loadNegotiating = useCallback(async () => {
+    try {
+      const rows = await driver.getMyRides({ status: 'negotiating', per_page: 8, page: 1 })
+      setNegotiatingRides(Array.isArray(rows) ? rows : [])
+    } catch {
+      setNegotiatingRides([])
     }
   }, [])
 
@@ -111,7 +147,8 @@ export default function DriverHome() {
     } catch {
       setRatingSummary({ averageRating: 0 })
     }
-  }, [])
+    await loadNegotiating()
+  }, [loadNegotiating])
 
   const fetchNearby = useCallback(async () => {
     if (!coords) {
@@ -124,7 +161,9 @@ export default function DriverHome() {
       const pack = await driver.getAvailableRides({
         latitude: coords.lat,
         longitude: coords.lng,
+        radius: CLIENT_RADIUS_KM,
       })
+      if (pack?.searchRadius != null) setSearchRadiusKm(Number(pack.searchRadius))
       if (pack?.isDriverBlocked) {
         setBlockMsg(pack.blockMessage || 'تم تقييد عرض الطلبات الجديدة مؤقتاً.')
         setRides([])
@@ -137,11 +176,12 @@ export default function DriverHome() {
           ? pack.availableRides
           : []
       setRides(list)
+      await loadNegotiating()
     } catch (e) {
       toast.error(getErrorMessage(e))
       setRides([])
     }
-  }, [coords])
+  }, [coords, loadNegotiating])
 
   useEffect(() => {
     loadStatus()
@@ -166,11 +206,12 @@ export default function DriverHome() {
 
   useEffect(() => {
     if (!coords) return
+    const ms = online ? 8000 : 25000
     const t = setInterval(() => {
       fetchNearby().catch(() => {})
-    }, 28000)
+    }, ms)
     return () => clearInterval(t)
-  }, [coords, fetchNearby])
+  }, [coords, fetchNearby, online])
 
   const onLocate = useCallback(async () => {
     setLocBusy(true)
@@ -221,6 +262,35 @@ export default function DriverHome() {
       toast.success('تم قبول الرحلة')
       await fetchNearby()
       navigate(`/app/trip/${id}`)
+    } catch (e) {
+      toast.error(getErrorMessage(e))
+    } finally {
+      setActionId(null)
+    }
+  }
+
+  const openNegotiate = (r) => {
+    setNegotiateId(r.id)
+    const base = displayTripFare(r.pricing)
+    setNegotiateAmount(base != null && base > 0 ? String(Math.max(1, Math.round(base - 1))) : '')
+  }
+
+  const submitNegotiate = async () => {
+    if (!negotiateId) return
+    const v = parseFloat(String(negotiateAmount).replace(',', '.'))
+    if (!Number.isFinite(v) || v <= 0) {
+      toast.error('أدخل مبلغاً صالحاً (يجب أن يختلف عن سعر الراكب ليُرسل كعرض).')
+      return
+    }
+    setActionId(negotiateId)
+    try {
+      await driver.respondToRide({ rideRequestId: negotiateId, accept: true, proposedFare: v })
+      toast.success('تم إرسال عرض السعر للراكب')
+      setNegotiateId(null)
+      setNegotiateAmount('')
+      await fetchNearby()
+      await loadNegotiating()
+      navigate(`/app/trips`)
     } catch (e) {
       toast.error(getErrorMessage(e))
     } finally {
@@ -346,6 +416,30 @@ export default function DriverHome() {
             {blockMsg}
           </div>
         ) : null}
+
+        {negotiatingRides.length ? (
+          <div className="pointer-events-auto rounded-2xl border border-primary/30 bg-primary/[0.07] px-3 py-2 text-end shadow-sm backdrop-blur-sm">
+            <p className="text-xs font-bold text-primary">مفاوضة سعر قيد الانتظار</p>
+            <ul className="mt-1 space-y-1">
+              {negotiatingRides.map((nr) => (
+                <li key={nr.id}>
+                  <Link
+                    className="text-sm font-semibold text-ink underline-offset-2 hover:underline"
+                    to={`/app/trip/${nr.id}`}
+                  >
+                    رحلة #{nr.id} — متابعة التفاوض
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        {coords && online && searchRadiusKm != null ? (
+          <p className="pointer-events-none text-center text-[10px] leading-snug text-[#52627A]">
+            البحث عن طلبات ضمن نحو {searchRadiusKm} كم من موقعك الحالي (يمكن تغيير المسافة عبر VITE_DRIVER_AVAILABLE_RIDES_RADIUS_KM).
+          </p>
+        ) : null}
       </div>
 
       {!loading && !coords ? (
@@ -400,20 +494,25 @@ export default function DriverHome() {
         ) : null}
 
         {!loading && coords && online && !filtered.length ? (
-          <p className={cn('rounded-2xl bg-white/90 py-4 text-center text-sm shadow-sm backdrop-blur-sm', muted)}>لا توجد طلبات في نطاقك حالياً.</p>
+          <div className={cn('space-y-1 rounded-2xl bg-white/90 px-3 py-4 text-center text-sm shadow-sm backdrop-blur-sm', muted)}>
+            <p>لا توجد طلبات جديدة ضمن نطاق البحث حالياً.</p>
+            <p className="text-xs leading-relaxed text-[#8595AD]">
+              تأكد أن الراكب أنشأ الطلب وأن نقطة الانطلاق على الخريطة قريبة من موقعك (GPS)، أو زِد نطاق البحث في الإعدادات.
+            </p>
+          </div>
         ) : null}
 
         {online
           ? filtered.map((r) => {
-              const fare = r.pricing?.totalAmount ?? r.pricing?.estimatedPrice
-              const fareStr = fare != null ? `${fare}` : '—'
+              const fareNum = displayTripFare(r.pricing)
+              const fareStr = fareNum != null ? `${fareNum}` : '—'
               const km = r.distance != null ? `${r.distance} km` : r.pricing?.distance != null ? `${r.pricing.distance} km` : null
               const pay = r.pricing?.paymentType === 'cash' ? 'كاش' : r.pricing?.paymentType === 'wallet' ? 'محفظة' : 'دفع'
               const durMin = r.pricing?.duration != null ? Math.max(1, Math.round(Number(r.pricing.duration))) : null
-              const est = r.pricing?.estimatedPrice
-              const tot = r.pricing?.totalAmount
+              const estN = numericEstimatedFare(r.pricing?.estimatedPrice)
+              const totN = r.pricing?.totalAmount != null ? Number(r.pricing.totalAmount) : null
               const showDiscount =
-                est != null && tot != null && Number(est) > 0 && Number(tot) > 0 && Number(est) < Number(tot) * 0.99
+                estN != null && totN != null && estN > 0 && totN > 0 && estN < totN * 0.99
               const avatarUrl = resolveMedia(r.rider?.avatar)
               const pickShort = shortPlace(r.pickup?.address)
               const dropShort = shortPlace(r.dropoff?.address)
@@ -501,23 +600,34 @@ export default function DriverHome() {
                     </div>
                   </div>
 
-                  <div dir="ltr" className="mt-3 flex gap-2.5">
+                  <div dir="ltr" className="mt-3 flex flex-col gap-2">
+                    <div className="flex gap-2.5">
+                      <Button
+                        type="button"
+                        className="h-12 flex-1 rounded-[50px] bg-primary font-medium text-[#efeaf4] shadow-sm hover:bg-primary-hover"
+                        disabled={actionId === r.id}
+                        onClick={() => acceptRide(r.id)}
+                      >
+                        قبول
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="h-12 flex-1 rounded-[50px] border-0 bg-[#F0F2F5] font-medium text-[#8595ad] hover:bg-[#e8eaef]"
+                        disabled={actionId === r.id}
+                        onClick={() => setRejectId(r.id)}
+                      >
+                        رفض
+                      </Button>
+                    </div>
                     <Button
                       type="button"
-                      className="h-12 flex-1 rounded-[50px] bg-primary font-medium text-[#efeaf4] shadow-sm hover:bg-primary-hover"
+                      variant="outline"
+                      className="h-10 w-full rounded-[50px] border-primary/40 text-sm font-semibold text-primary"
                       disabled={actionId === r.id}
-                      onClick={() => acceptRide(r.id)}
+                      onClick={() => openNegotiate(r)}
                     >
-                      قبول
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="h-12 flex-1 rounded-[50px] border-0 bg-[#F0F2F5] font-medium text-[#8595ad] hover:bg-[#e8eaef]"
-                      disabled={actionId === r.id}
-                      onClick={() => setRejectId(r.id)}
-                    >
-                      رفض
+                      اقتراح سعر مختلف (تفاوض)
                     </Button>
                   </div>
                 </article>
@@ -536,6 +646,31 @@ export default function DriverHome() {
           </Link>
         </div>
       </div>
+
+      {negotiateId ? (
+        <div className="fixed inset-0 z-[85] flex items-end justify-center bg-black/45 p-4" role="dialog">
+          <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-xl">
+            <p className="text-end text-base font-black text-ink">عرض سعر للراكب</p>
+            <p className={cn('mt-1 text-end text-xs', muted)}>يجب أن يختلف المبلغ عن سعر الطلب الحالي ليُرسل كعرض تفاوض.</p>
+            <Input
+              value={negotiateAmount}
+              onChange={(e) => setNegotiateAmount(e.target.value)}
+              placeholder="المبلغ المقترح (ج.م)"
+              className="mt-3 h-11 rounded-xl text-end"
+              dir="ltr"
+              inputMode="decimal"
+            />
+            <div className="mt-4 flex gap-2">
+              <Button type="button" variant="outline" className="flex-1 rounded-xl" onClick={() => setNegotiateId(null)}>
+                إلغاء
+              </Button>
+              <Button type="button" className="flex-1 rounded-xl" disabled={actionId === negotiateId} onClick={submitNegotiate}>
+                إرسال العرض
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {rejectId ? (
         <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/45 p-4" role="dialog">
