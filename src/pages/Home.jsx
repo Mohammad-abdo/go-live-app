@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { ChevronRight, Minus, Plus, Star, X } from 'lucide-react'
+import { ChevronRight, LocateFixed, Minus, Plus, Star, Ticket, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { FIGMA_ASSETS } from '@/lib/figmaAssets'
 import { cn } from '@/lib/utils'
@@ -21,13 +21,28 @@ const subtle = 'text-[#8595AD]'
 
 const CAIRO = { lat: 30.0444, lng: 31.2357, address: 'القاهرة، مصر' }
 
-/** Uses admin `pricingRule` from vehicle-types API; env rate only if rule missing. */
+/** Coerce API rule fields (strings / Decimals) for distance-based fare. */
+function normalizePricingRule(rule) {
+  if (!rule || typeof rule !== 'object') return null
+  return {
+    baseFare: Number(rule.baseFare) || 0,
+    minimumFare: Number(rule.minimumFare) || 0,
+    baseDistance: Number(rule.baseDistance) > 0 ? Number(rule.baseDistance) : 5,
+    perDistanceAfterBase: Number(rule.perDistanceAfterBase) || 0,
+  }
+}
+
+/** Uses admin `pricingRule` from vehicle-types API; env EGP/km only if rule missing. */
 function estimateVehicleFare(vehicle, distanceKm) {
-  const fromRule = computeFareFromPricingRule(distanceKm, vehicle?.pricingRule)
+  const fromRule = computeFareFromPricingRule(distanceKm, normalizePricingRule(vehicle?.pricingRule))
   if (fromRule != null) return fromRule
   const n = Number(import.meta.env.VITE_TRIP_PRICE_PER_KM)
   const per = Number.isFinite(n) && n > 0 ? n : 8
   return computeFallbackDistanceOnlyFare(distanceKm, per)
+}
+
+function hasDashboardPricingRule(v) {
+  return v?.pricingRule != null && typeof v.pricingRule === 'object'
 }
 
 function offsetPoint(p, dLat, dLng, address) {
@@ -38,23 +53,33 @@ function formatCurrentLocationAddress(lat, lng) {
   return `موقعي الحالي (${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)})`
 }
 
-/** @returns {Promise<{ lat: number, lng: number } | null>} */
-function readGeolocationOnce() {
+function geolocationTryOnce(options) {
   if (typeof navigator === 'undefined' || !navigator.geolocation) {
     return Promise.resolve(null)
   }
   return new Promise((resolve) => {
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        resolve({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-        })
-      },
+      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
       () => resolve(null),
-      { enableHighAccuracy: true, maximumAge: 60_000, timeout: 12_000 },
+      options,
     )
   })
+}
+
+/** GPS: accurate pass then faster low-accuracy pass (mobile / Safari friendly). */
+async function readGeolocationPreferred() {
+  let c = await geolocationTryOnce({
+    enableHighAccuracy: true,
+    maximumAge: 30_000,
+    timeout: 12_000,
+  })
+  if (c) return c
+  c = await geolocationTryOnce({
+    enableHighAccuracy: false,
+    maximumAge: 0,
+    timeout: 28_000,
+  })
+  return c
 }
 
 /** @param {Record<string, unknown>|null|undefined} addr */
@@ -113,9 +138,12 @@ function RoutePlanSheet({
   onApplySaved,
   onContinue,
   bootLoading,
+  tripDistanceKm,
+  onUseMyLocation,
+  locationBusy,
 }) {
   return (
-    <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-[50] flex max-h-[52%] flex-col rounded-t-[30px] bg-white shadow-[0_-8px_32px_rgba(0,0,0,0.08)]">
+    <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-[50] flex max-h-[56%] flex-col rounded-t-[30px] bg-white shadow-[0_-8px_32px_rgba(0,0,0,0.08)]">
       <div className="mx-auto mt-2 h-1 w-12 shrink-0 rounded-full bg-[#e7e9f2]" />
       <div className="flex flex-col gap-3 overflow-y-auto px-5 pb-4 pt-3">
         <div className="flex items-center justify-between gap-2">
@@ -123,8 +151,25 @@ function RoutePlanSheet({
           {bootLoading ? <span className="text-xs text-primary">مزامنة…</span> : null}
         </div>
 
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#E8EAEF] bg-[#fafafa] px-3 py-2">
+          <span className={cn('text-xs font-semibold tabular-nums text-primary')}>
+            ≈ {Number(tripDistanceKm).toFixed(1)} كم بين الانطلاق والوجهة
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-9 gap-1.5 rounded-full border-primary/30 px-3 text-xs font-semibold text-primary"
+            disabled={locationBusy}
+            onClick={onUseMyLocation}
+          >
+            <LocateFixed className="size-3.5 shrink-0" />
+            {locationBusy ? 'جاري الموقع…' : 'موقعي GPS'}
+          </Button>
+        </div>
+
         <p className={cn('text-xs leading-relaxed', muted)}>
-          اختر ما تريد تعديله، ثم اضغط على الخريطة لوضع الدبوس، أو اسحب الدبوس الأخضر (انطلاق) والأحمر (وجهة).
+          اختر ما تريد تعديله، ثم اضغط على الخريطة لوضع الدبوس، أو اسحب الدبوس الأخضر (انطلاق) والأحمر (وجهة). فعّل صلاحية الموقع للمتصفح إن طُلب منك.
         </p>
 
         <div className="flex gap-2">
@@ -228,6 +273,17 @@ function OffersSheet({
       <div className="flex flex-1 flex-col overflow-hidden rounded-t-[30px] bg-white shadow-[0_-8px_32px_rgba(0,0,0,0.1)]">
         <div className="flex max-h-[min(420px,46vh)] flex-col gap-5 overflow-y-auto px-4 py-4">
           <div className="mx-auto h-1 w-12 rounded-full bg-[#e7e9f2]" />
+          <Link
+            to="/app/payment"
+            className="flex items-center justify-between rounded-xl border border-dashed border-primary/25 bg-primary/[0.04] px-3 py-2.5"
+          >
+            <ChevronRight className="size-4 shrink-0 text-primary/70 rtl:rotate-180" />
+            <span className={cn('min-w-0 flex-1 text-end text-sm font-semibold text-primary')}>
+              هل لديك كود ترويجي؟ استخدمه هنا
+            </span>
+            <Ticket className="size-5 shrink-0 text-primary" />
+          </Link>
+          <p className={cn('-mt-2 text-end text-xs font-bold text-ink')}>رحلات بأجرة معقولة</p>
           {!vehicles.length ? (
             <p className={cn('text-center text-sm', muted)}>لا توجد فئات مركبات لهذه الخدمة في الخادم.</p>
           ) : (
@@ -247,9 +303,11 @@ function OffersSheet({
                 >
                   <div className="flex shrink-0 flex-col items-end self-center">
                     <p className={cn('text-sm font-semibold tabular-nums', ink)}>E£ {legFare}</p>
-                    {item.pricingRule ? (
-                      <p className={cn('max-w-[7rem] text-[10px] leading-tight text-primary/90')}>من لوحة التحكم</p>
-                    ) : null}
+                    {hasDashboardPricingRule(item) ? (
+                      <p className={cn('max-w-[8rem] text-[10px] leading-tight text-primary/90')}>تسعير كم + لوحة التحكم</p>
+                    ) : (
+                      <p className={cn('max-w-[8rem] text-[10px] leading-tight text-amber-800/90')}>كم فقط (لا قاعدة في الـ API)</p>
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className={cn('text-sm font-medium', ink)}>{label}</p>
@@ -270,8 +328,11 @@ function OffersSheet({
             <div className="rounded-[20px] bg-white p-2.5 shadow-sm">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1 text-end">
-                  <p className={cn('text-sm font-medium', ink)}>الأجرة المقدرة</p>
+                  <p className={cn('text-sm font-medium', ink)}>الأجرة المقدرة (حسب المسافة)</p>
                   <p className={cn('mt-1 text-2xl font-semibold tabular-nums', ink)}>E£ {fare}</p>
+                  <p className={cn('mt-0.5 text-[11px] font-medium text-primary/90')}>
+                    ليست «سعر الفئة» الثابت — المحسوبة من {distanceKm.toFixed(1)} كم
+                  </p>
                   <p className={cn('mt-1 text-xs leading-relaxed', muted)}>{breakdownLine}</p>
                 </div>
                 <div className="flex h-10 w-20 shrink-0 items-center justify-center rounded-xl bg-[#F0F2F5] text-2xl">
@@ -315,11 +376,11 @@ function OffersSheet({
           <div className="flex items-center gap-2 pb-3 pt-2">
             <Button
               type="button"
-              className="h-12 flex-1 rounded-full text-base font-semibold"
+              className="h-12 flex-1 rounded-full border-0 bg-cta text-base font-bold text-cta-foreground shadow-md transition hover:bg-cta/90"
               onClick={onSearchDrivers}
               disabled={loading || !vehicles.length}
             >
-              {loading ? 'جاري البحث…' : 'بحث عن سائق'}
+              {loading ? 'جاري البحث…' : 'البحث عن عروض'}
             </Button>
             <span className="text-xl" aria-hidden>
               💵
@@ -332,7 +393,7 @@ function OffersSheet({
   )
 }
 
-function MatchingSheet({ driverCount, onCancelRequest, onPickDrivers }) {
+function MatchingSheet({ driverCount, onCancelRequest, onPickDrivers, estimatedFare, distanceKm }) {
   return (
     <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-[50] flex max-h-[72%] flex-col rounded-t-[30px] bg-white shadow-[0_-8px_32px_rgba(0,0,0,0.1)]">
       <div className="flex flex-col gap-2.5 px-4 pb-2 pt-3">
@@ -354,7 +415,11 @@ function MatchingSheet({ driverCount, onCancelRequest, onPickDrivers }) {
           </p>
         </div>
         <div className="flex flex-col gap-4 rounded-2xl bg-white px-4 py-4">
-          <p className={cn('text-end text-sm', ink)}>أفضل أجرة — طلبك يحصل على الأولوية ضمن نطاق البحث.</p>
+          <p className={cn('text-end text-sm', ink)}>
+            البحث عن أقرب الكباتن ضمن النطاق. تقدير الرحلة الحالي:{' '}
+            <span className="font-bold text-primary tabular-nums">E£ {estimatedFare}</span> —{' '}
+            <span className="tabular-nums">{Number(distanceKm).toFixed(1)} كم</span>
+          </p>
           <div className="h-1 w-full overflow-hidden rounded bg-[#F0F2F5]">
             <div className="h-full w-[84%] rounded bg-primary" />
           </div>
@@ -375,13 +440,15 @@ function MatchingSheet({ driverCount, onCancelRequest, onPickDrivers }) {
   )
 }
 
-function DriverPickCard({ driver, onAccept }) {
-  const price = driver.price != null ? `E£ ${driver.price}` : '—'
+function DriverPickCard({ driver, tripFareEstimate, distanceKm, onAccept }) {
   return (
     <div className="flex w-full flex-col gap-2.5 rounded-[20px] border-t border-[#e4e4e4] bg-white px-5 py-3 shadow-sm">
-      <div className="flex w-full items-center justify-between">
-        <p className={cn('text-base', muted)}>قريب</p>
-        <p className="text-lg font-semibold text-primary">{price}</p>
+      <div className="flex w-full items-center justify-between gap-2">
+        <p className={cn('text-xs', muted)}>تقدير للمسافة</p>
+        <div className="text-end">
+          <p className="text-lg font-semibold text-primary tabular-nums">E£ {tripFareEstimate}</p>
+          <p className={cn('text-[10px] leading-tight', muted)}>{Number(distanceKm).toFixed(1)} كم · نفس مركبتك المختارة</p>
+        </div>
       </div>
       <div className="flex items-center justify-end gap-2.5">
         <div className="flex w-[84px] flex-col items-center gap-2">
@@ -415,7 +482,7 @@ function DriverPickCard({ driver, onAccept }) {
   )
 }
 
-function SelectDriverSheet({ drivers, onBackToMatching, onAcceptDriver, onCancelFlow }) {
+function SelectDriverSheet({ drivers, tripFareEstimate, distanceKm, onBackToMatching, onAcceptDriver, onCancelFlow }) {
   return (
     <>
       <button
@@ -428,8 +495,17 @@ function SelectDriverSheet({ drivers, onBackToMatching, onAcceptDriver, onCancel
       </button>
       <div className="pointer-events-auto absolute inset-x-0 top-[calc(var(--safe-top)+5rem)] z-[50] flex max-h-[min(560px,calc(100%-var(--safe-top)-6rem))] flex-col gap-3 overflow-y-auto px-3 pb-24">
         <p className={cn('px-2 text-lg font-semibold', ink)}>اختر سائق</p>
+        <p className={cn('px-2 text-xs leading-relaxed', muted)}>
+          الأجرة المعروضة هي <strong className="text-ink">تقدير الرحلة</strong> من المسافة وقواعد التسعير، وليست سعر فئة ثابت من بطاقة السائق.
+        </p>
         {drivers.map((d) => (
-          <DriverPickCard key={d.id} driver={d} onAccept={onAcceptDriver} />
+          <DriverPickCard
+            key={d.id}
+            driver={d}
+            tripFareEstimate={tripFareEstimate}
+            distanceKm={distanceKm}
+            onAccept={onAcceptDriver}
+          />
         ))}
         <Button variant="link" className="text-primary" type="button" onClick={onBackToMatching}>
           العودة للمطابقة
@@ -525,6 +601,29 @@ export default function Home() {
   /** Bootstrap runs only for rider; drivers skip loading state. */
   const [bootLoading, setBootLoading] = useState(() => getActiveRole() === 'rider')
   const [actionLoading, setActionLoading] = useState(false)
+  const [locationBusy, setLocationBusy] = useState(false)
+
+  const applyDeviceLocation = useCallback(async () => {
+    setLocationBusy(true)
+    try {
+      const coords = await readGeolocationPreferred()
+      if (!coords) {
+        toast.message('تعذر قراءة الموقع. اسمح للمتصفح بالوصول للموقع، أو ضع الدبوس على الخريطة.')
+        return
+      }
+      const pickupPoint = {
+        lat: coords.lat,
+        lng: coords.lng,
+        address: formatCurrentLocationAddress(coords.lat, coords.lng),
+      }
+      setPickup(pickupPoint)
+      setDropoff(offsetPoint(pickupPoint, 0.02, 0.02, 'وجهة مقترحة'))
+      setMapMode('pickup')
+      toast.success('تم ضبط الانطلاق من موقعك')
+    } finally {
+      setLocationBusy(false)
+    }
+  }, [])
 
   useEffect(() => {
     if (role !== 'rider') return
@@ -548,37 +647,31 @@ export default function Home() {
         }
         if (cancelled) return
         setVehicleTypes(vt)
-        if (list.length >= 2) {
-          const pa = parseAddrPoint(list[0])
-          const pb = parseAddrPoint(list[1])
-          if (pa && pb) {
-            setPickup(pa)
-            setDropoff(pb)
-          } else {
-            setPickup(CAIRO)
-            setDropoff(offsetPoint(CAIRO, 0.02, 0.02, 'وجهة بالقاهرة (مقترحة)'))
-          }
-        } else if (list.length === 1) {
-          const pa = parseAddrPoint(list[0])
-          if (pa) {
-            setPickup(pa)
-            setDropoff(offsetPoint(pa, 0.02, 0.02, 'وجهة مقترحة'))
-          } else {
-            setPickup(CAIRO)
-            setDropoff(offsetPoint(CAIRO, 0.02, 0.02, 'وجهة بالقاهرة (مقترحة)'))
-          }
+
+        const p0 = list[0] ? parseAddrPoint(list[0]) : null
+        const p1 = list[1] ? parseAddrPoint(list[1]) : null
+        const twoValidSaved = Boolean(p0 && p1)
+
+        if (twoValidSaved) {
+          setPickup(p0)
+          setDropoff(p1)
+        } else if (p0 && !p1) {
+          setPickup(p0)
+          setDropoff(offsetPoint(p0, 0.02, 0.02, 'وجهة مقترحة'))
         } else {
           setPickup(CAIRO)
           setDropoff(offsetPoint(CAIRO, 0.02, 0.02, 'وجهة بالقاهرة (مقترحة)'))
         }
 
-        /** Pickup = device location when we are not using two saved addresses (full route). */
-        if (!cancelled && list.length < 2) {
-          const coords = await readGeolocationOnce()
+        /** GPS when we do not have two saved points with coordinates (includes 0 or 1 rows, or invalid coords). */
+        if (!cancelled && !twoValidSaved) {
+          const coords = await readGeolocationPreferred()
           if (!cancelled && coords) {
-            const lat = coords.lat
-            const lng = coords.lng
-            const pickupPoint = { lat, lng, address: formatCurrentLocationAddress(lat, lng) }
+            const pickupPoint = {
+              lat: coords.lat,
+              lng: coords.lng,
+              address: formatCurrentLocationAddress(coords.lat, coords.lng),
+            }
             setPickup(pickupPoint)
             setDropoff(offsetPoint(pickupPoint, 0.02, 0.02, 'وجهة مقترحة'))
           }
@@ -768,6 +861,9 @@ export default function Home() {
           onApplySaved={applySavedAddresses}
           onContinue={goOffers}
           bootLoading={bootLoading}
+          tripDistanceKm={tripDistanceKm}
+          onUseMyLocation={applyDeviceLocation}
+          locationBusy={locationBusy}
         />
       ) : null}
       {step === 'offers' ? (
@@ -788,11 +884,15 @@ export default function Home() {
           driverCount={nearDrivers.length}
           onPickDrivers={goDrivers}
           onCancelRequest={() => setCancelOpen(true)}
+          estimatedFare={fare}
+          distanceKm={tripDistanceKm}
         />
       ) : null}
       {step === 'drivers' ? (
         <SelectDriverSheet
           drivers={nearDrivers}
+          tripFareEstimate={fare}
+          distanceKm={tripDistanceKm}
           onBackToMatching={() => setStep('matching')}
           onAcceptDriver={acceptDriver}
           onCancelFlow={cancelFlow}

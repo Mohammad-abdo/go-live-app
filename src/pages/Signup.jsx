@@ -38,7 +38,7 @@ export default function Signup() {
         confirmPassword,
       })
       const token = extractToken(data)
-      if (token) setSessionAuth({ riderToken: token, activeRole: 'rider' })
+      if (token) setSessionAuth({ riderToken: token, driverToken: '', activeRole: 'rider' })
       toast.success(data?.message || 'تم إنشاء الحساب')
       navigate('/verify-otp', { replace: true, state: { phone: phone.trim() } })
     } catch (err) {

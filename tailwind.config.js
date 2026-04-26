@@ -27,6 +27,10 @@ export default {
           foreground: 'hsl(var(--card-foreground))',
         },
         ink: '#0A0C0F',
+        cta: {
+          DEFAULT: '#D4F545',
+          foreground: '#0A0C0F',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',

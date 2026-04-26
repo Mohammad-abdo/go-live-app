@@ -21,19 +21,19 @@ export default function FloatingAppControls() {
     >
       <button
         type="button"
-        onClick={openNotifications}
-        className="pointer-events-auto flex size-11 items-center justify-center rounded-full border border-[#E8EAEF] bg-white/95 text-primary shadow-md backdrop-blur-sm"
-        aria-label="الإشعارات"
-      >
-        <Bell className="size-5" strokeWidth={2} />
-      </button>
-      <button
-        type="button"
         onClick={openMenu}
         className="pointer-events-auto flex size-11 items-center justify-center rounded-full border border-[#E8EAEF] bg-white/95 text-primary shadow-md backdrop-blur-sm"
         aria-label="القائمة"
       >
         <Menu className="size-5" strokeWidth={2} />
+      </button>
+      <button
+        type="button"
+        onClick={openNotifications}
+        className="pointer-events-auto flex size-11 items-center justify-center rounded-full border border-[#E8EAEF] bg-white/95 text-primary shadow-md backdrop-blur-sm"
+        aria-label="الإشعارات"
+      >
+        <Bell className="size-5" strokeWidth={2} />
       </button>
     </div>
   )

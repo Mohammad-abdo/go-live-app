@@ -8,7 +8,8 @@
 
 /** @param {any} resData Axios `response.data` (body JSON) */
 export function extractToken(resData) {
-  return resData?.data?.token ?? resData?.token ?? null
+  const d = resData?.data
+  return d?.token ?? d?.accessToken ?? resData?.token ?? resData?.accessToken ?? null
 }
 
 function firstId(payload) {

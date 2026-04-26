@@ -1,4 +1,6 @@
 /**
+ * Local screen exports: copy PNGs into `public/figma_images_for_app/` and use `src/lib/figma_images_for_app.js`.
+ *
  * Remote previews from Figma MCP (expire after ~7 days). App falls back to CSS if images fail.
  * File: Dr04r0K9dWskmkfNErc51V — canvas "Test Design" (node 1:2).
  *
