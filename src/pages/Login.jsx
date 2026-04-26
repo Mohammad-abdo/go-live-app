@@ -237,7 +237,11 @@ export default function Login() {
       <p className="mt-6 text-center text-sm font-medium text-[#52627A]">
         ليس لديك حساب؟{' '}
         <Link to="/signup" className="font-black text-primary underline-offset-2 hover:underline">
-          إنشاء حساب راكب
+          راكب
+        </Link>
+        <span className="mx-1.5 text-[#D5D9E2]">·</span>
+        <Link to="/signup-driver" className="font-black text-primary underline-offset-2 hover:underline">
+          كابتن
         </Link>
       </p>
     </AuthScreenShell>

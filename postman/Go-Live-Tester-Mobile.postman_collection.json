@@ -1,0 +1,1307 @@
+{
+  "info": {
+    "name": "Go Live Tester — Mobile (Rider + Driver)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Endpoints used by go-live-tester. Set variables: base_url, rider_token, driver_token."
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://nodeteam.site"
+    },
+    {
+      "key": "rider_token",
+      "value": ""
+    },
+    {
+      "key": "driver_token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Rider — Auth (no token)",
+      "item": [
+        {
+          "name": "Rider register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/user/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test\",\n  \"phone\": \"01234567890\",\n  \"password\": \"Test1234\",\n  \"confirmPassword\": \"Test1234\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Rider login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/user/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"01234567890\",\n  \"password\": \"Test1234\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Rider resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/user/auth/resend-otp",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"01234567890\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Rider submit OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/user/auth/submit-otp",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"otp\": \"123456\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rider — App (Bearer rider_token)",
+      "item": [
+        {
+          "name": "Profile GET",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/apimobile/user/profile",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Profile update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/user/profile/update",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"A\",\n  \"lastName\": \"B\",\n  \"email\": \"a@b.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Home services",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/apimobile/user/home/services",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Addresses list",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/apimobile/user/addresses",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Address add",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/user/addresses",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Home\",\n  \"address\": \"Cairo\",\n  \"latitude\": \"30\",\n  \"longitude\": \"31\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Vehicle types",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/apimobile/user/booking/vehicle-types/1",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Booking create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/user/booking/create",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicle_id\": 1,\n  \"paymentMethod\": \"cash\",\n  \"from\": {\n    \"lat\": 30,\n    \"lng\": 31,\n    \"address\": \"A\"\n  },\n  \"to\": {\n    \"lat\": 30.1,\n    \"lng\": 31.1,\n    \"address\": \"B\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Near drivers",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/user/offers/near-drivers",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"booking_id\": 1,\n  \"booking_location\": {\n    \"lat\": 30,\n    \"lng\": 31\n  },\n  \"radius_km\": 15\n}"
+            }
+          }
+        },
+        {
+          "name": "Accept driver",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/user/offers/accept-driver",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driver_id\": 2,\n  \"booking_id\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Cancel trip",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/user/offers/cancel-trip",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"booking_id\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "My bookings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/apimobile/user/my-bookings?page=1&limit=20",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Active ride",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/apimobile/user/offers/active-ride",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Trip status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/apimobile/user/offers/trip-status/1",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Track driver",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/user/offers/track-driver",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driver_id\": 2,\n  \"booking_id\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Trip end",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/user/offers/trip-end",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"booking_id\": 1,\n  \"driver_id\": 2\n}"
+            }
+          }
+        },
+        {
+          "name": "Rate driver",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/user/offers/rate-driver",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driver_id\": 2,\n  \"booking_id\": 1,\n  \"rate\": 5,\n  \"text\": \"ok\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Booking by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/apimobile/user/my-bookings/1",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Booking review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/user/my-bookings/review",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"book_id\": 1,\n  \"text\": \"nice\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Tip driver",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/user/offers/tip",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rideRequestId\": 1,\n  \"amount\": 10\n}"
+            }
+          }
+        },
+        {
+          "name": "Negotiation accept",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/user/negotiation/accept",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rideRequestId\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/apimobile/user/notifications",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Bank cards",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/apimobile/user/bank-cards",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add bank card",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/user/add-bank-card",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"number\": \"4111111111111111\",\n  \"holder\": \"Test\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete bank card",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/apimobile/user/bank-cards/1",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Help center",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/apimobile/user/static/help-center",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Wallet operations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/apimobile/user/wallet/operations?limit=15",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "SOS",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/user/offers/sos",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rideRequestId\": 1,\n  \"note\": \"test\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/user/logout",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chat (Bearer rider_token)",
+      "item": [
+        {
+          "name": "Chat messages GET",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/apimobile/chat/rides/1/messages?page=1",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Chat message POST",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/chat/rides/1/messages",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Hi\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Driver — Auth",
+      "item": [
+        {
+          "name": "Driver register (multipart)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "firstName",
+                  "value": "Captain",
+                  "type": "text"
+                },
+                {
+                  "key": "lastName",
+                  "value": "Test",
+                  "type": "text"
+                },
+                {
+                  "key": "contactNumber",
+                  "value": "01009999999",
+                  "type": "text"
+                },
+                {
+                  "key": "countryCode",
+                  "value": "+20",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "Password123",
+                  "type": "text"
+                },
+                {
+                  "key": "confirmPassword",
+                  "value": "Password123",
+                  "type": "text"
+                },
+                {
+                  "key": "carModel",
+                  "value": "Corolla",
+                  "type": "text"
+                },
+                {
+                  "key": "carColor",
+                  "value": "White",
+                  "type": "text"
+                },
+                {
+                  "key": "carPlateNumber",
+                  "value": "س س س 123",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": "{{base_url}}/apimobile/driver/auth/register"
+          }
+        },
+        {
+          "name": "Driver login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/driver/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"01001234567\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Driver — App (Bearer driver_token)",
+      "item": [
+        {
+          "name": "Driver profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/apimobile/driver/profile",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driver_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Driver profile update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/driver/profile/update",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driver_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"D\",\n  \"lastName\": \"R\",\n  \"email\": \"d@r.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Driver vehicle update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/driver/vehicle/update",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driver_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"carModel\": \"Toyota\",\n  \"carColor\": \"White\",\n  \"carPlateNumber\": \"ABC123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Driver status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/apimobile/driver/status",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driver_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Go online",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/driver/status/go-online",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driver_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          }
+        },
+        {
+          "name": "Location update",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/driver/location/update",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driver_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": 30.04,\n  \"longitude\": 31.23\n}"
+            }
+          }
+        },
+        {
+          "name": "Available rides",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/apimobile/driver/rides/available?latitude=30.04&longitude=31.23&radius=25",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driver_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Rides list",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/apimobile/driver/rides?page=1&per_page=15&status=all",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driver_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Ride detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/apimobile/driver/rides/1",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driver_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Ride respond accept",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/driver/rides/respond",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driver_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rideRequestId\": 1,\n  \"accept\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Ride respond negotiate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/driver/rides/respond",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driver_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rideRequestId\": 1,\n  \"accept\": true,\n  \"proposedFare\": 120\n}"
+            }
+          }
+        },
+        {
+          "name": "Ride update status arrived",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/driver/rides/update-status",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driver_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rideRequestId\": 1,\n  \"status\": \"arrived\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Ride complete",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/driver/rides/complete",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driver_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rideRequestId\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Ride cancel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/driver/rides/cancel",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driver_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rideRequestId\": 1,\n  \"reason\": \"test\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Driver help",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/apimobile/driver/static/help-center",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driver_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Driver notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/apimobile/driver/notifications?page=1&per_page=30",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driver_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Driver wallet ops",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/apimobile/driver/wallet/operations?limit=15",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driver_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Driver ratings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/apimobile/driver/ratings?page=1&per_page=1",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driver_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Driver logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/driver/auth/logout",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driver_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

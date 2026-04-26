@@ -23,6 +23,7 @@ import Wallet from '@/pages/Wallet'
 import Language from '@/pages/Language'
 import Legal from '@/pages/Legal'
 import Signup from '@/pages/Signup'
+import DriverSignup from '@/pages/DriverSignup'
 import VerifyOtp from '@/pages/VerifyOtp'
 
 export default function App() {
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/signup-driver" element={<DriverSignup />} />
         <Route path="/verify-otp" element={<VerifyOtp />} />
         <Route
           path="/app"

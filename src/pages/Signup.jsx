@@ -152,6 +152,10 @@ export default function Signup() {
         <Link to="/login" className="font-semibold text-primary hover:underline">
           تسجيل الدخول
         </Link>
+        <span className="mx-2 text-[#D5D9E2]">|</span>
+        <Link to="/signup-driver" className="font-semibold text-primary hover:underline">
+          تسجيل كابتن
+        </Link>
       </p>
     </AuthScreenShell>
   )

@@ -44,6 +44,12 @@ function bearerForRequestUrl(url) {
 
 /** Attach JWT from login session (skipped for public auth routes and when caller sets Authorization). */
 api.interceptors.request.use((config) => {
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    const h = config.headers
+    if (h && typeof h.delete === 'function') h.delete('Content-Type')
+    else if (h) delete h['Content-Type']
+  }
+
   const url = String(config.url || '')
   if (
     url.includes('/auth/login') ||
