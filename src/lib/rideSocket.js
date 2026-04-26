@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client'
 import { normalizeEnvOrigin } from '@/lib/envOrigin'
-import { getSessionDriverToken, getSessionRiderToken } from '@/lib/sessionTokens'
+import { getActiveRole, getSessionDriverToken, getSessionRiderToken } from '@/lib/sessionTokens'
 
 /**
  * Socket.IO must use the **same origin** as the HTML when you proxy `/socket.io` (e.g. Vercel → API).
@@ -89,14 +89,53 @@ export function connectRideTrackingSocket({
 }
 
 /**
- * Rider-only: join `user-{id}` to receive `rider-ride-assigned`, `rider-trip-completed`, `rider-trip-cancelled`.
+ * Ride chat: join `ride-{id}` (same as ActiveTrip) and receive `chat:message` / typing / read from server + REST.
  * @param {object} opts
- * @param {number} opts.userId
- * @param {(payload: { rideRequestId?: number, status?: string, driverId?: number, proposedFare?: number }) => void} [opts.onRideAssigned]
- * @param {(payload: { rideRequestId?: number }) => void} [opts.onTripCompleted]
- * @param {(payload: { rideRequestId?: number, reason?: string | null }) => void} [opts.onTripCancelled]
+ * @param {string|number} opts.rideId
+ * @param {(msg: object) => void} [opts.onChatMessage]
+ * @param {(payload: object) => void} [opts.onChatTyping]
+ * @param {(payload: object) => void} [opts.onChatRead]
+ * @param {(err: Error) => void} [opts.onError]
  * @returns {() => void}
  */
+export function connectRideChatSocket({ rideId, onChatMessage, onChatTyping, onChatRead, onError }) {
+  const base = resolveSocketBaseUrl()
+  const id = parseInt(String(rideId), 10)
+  if (!Number.isFinite(id)) {
+    return () => {}
+  }
+
+  const token = getActiveRole() === 'driver' ? getSessionDriverToken() : getSessionRiderToken()
+  const socket = io(base || undefined, {
+    path: '/socket.io',
+    transports: ['polling', 'websocket'],
+    reconnectionAttempts: 8,
+    reconnectionDelay: 1200,
+    timeout: 20000,
+    ...(token ? { auth: { token } } : {}),
+  })
+
+  const onMsg = (payload) => onChatMessage?.(payload)
+  const onTyping = (payload) => onChatTyping?.(payload)
+  const onRead = (payload) => onChatRead?.(payload)
+
+  socket.on('connect', () => {
+    socket.emit('subscribe-ride', id)
+  })
+  socket.on('chat:message', onMsg)
+  socket.on('chat:typing', onTyping)
+  socket.on('chat:read', onRead)
+  socket.on('connect_error', (e) => onError?.(e))
+
+  return () => {
+    socket.off('chat:message', onMsg)
+    socket.off('chat:typing', onTyping)
+    socket.off('chat:read', onRead)
+    socket.removeAllListeners()
+    socket.disconnect()
+  }
+}
+
 /**
  * Captain home: join `driver-{id}` and refresh when a rider cancels a still-pending booking (no assignee).
  * @param {object} opts
@@ -136,7 +175,17 @@ export function connectDriverAvailableRidesSocket({ driverId, onPendingBookingCa
   }
 }
 
-export function connectRiderUserSocket({ userId, onRideAssigned, onTripCompleted, onTripCancelled }) {
+/**
+ * Rider: join `user-{id}` — ride lifecycle + optional in-app DB notifications (`app-notification`).
+ * @param {(payload: { notification?: object }) => void} [opts.onAppNotification]
+ */
+export function connectRiderUserSocket({
+  userId,
+  onRideAssigned,
+  onTripCompleted,
+  onTripCancelled,
+  onAppNotification,
+}) {
   const base = resolveSocketBaseUrl()
   const token = getSessionRiderToken()
   if (!userId || !token) {
@@ -155,6 +204,7 @@ export function connectRiderUserSocket({ userId, onRideAssigned, onTripCompleted
   const onAssigned = (payload) => onRideAssigned?.(payload)
   const onDone = (payload) => onTripCompleted?.(payload)
   const onCancel = (payload) => onTripCancelled?.(payload)
+  const onNotif = (payload) => onAppNotification?.(payload)
 
   socket.on('connect', () => {
     socket.emit('join-user-room', userId)
@@ -162,11 +212,52 @@ export function connectRiderUserSocket({ userId, onRideAssigned, onTripCompleted
   socket.on('rider-ride-assigned', onAssigned)
   socket.on('rider-trip-completed', onDone)
   socket.on('rider-trip-cancelled', onCancel)
+  if (onAppNotification) {
+    socket.on('app-notification', onNotif)
+  }
 
   return () => {
     socket.off('rider-ride-assigned', onAssigned)
     socket.off('rider-trip-completed', onDone)
     socket.off('rider-trip-cancelled', onCancel)
+    if (onAppNotification) socket.off('app-notification', onNotif)
+    socket.removeAllListeners()
+    socket.disconnect()
+  }
+}
+
+/**
+ * Driver app shell: join `driver-{id}` for `app-notification` (saved in DB on server).
+ * @param {object} opts
+ * @param {number} opts.driverId
+ * @param {(payload: { notification?: object }) => void} [opts.onAppNotification]
+ * @returns {() => void}
+ */
+export function connectDriverAppNotificationsSocket({ driverId, onAppNotification }) {
+  const base = resolveSocketBaseUrl()
+  const token = getSessionDriverToken()
+  if (!driverId || !token || !onAppNotification) {
+    return () => {}
+  }
+
+  const socket = io(base || undefined, {
+    path: '/socket.io',
+    transports: ['polling', 'websocket'],
+    reconnectionAttempts: 10,
+    reconnectionDelay: 1500,
+    timeout: 20000,
+    auth: { token },
+  })
+
+  const onNotif = (payload) => onAppNotification(payload)
+
+  socket.on('connect', () => {
+    socket.emit('join-driver-room', driverId)
+  })
+  socket.on('app-notification', onNotif)
+
+  return () => {
+    socket.off('app-notification', onNotif)
     socket.removeAllListeners()
     socket.disconnect()
   }

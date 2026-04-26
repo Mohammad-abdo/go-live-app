@@ -49,6 +49,19 @@ export default function NotificationsPeek({ onSeeAll }) {
     }
   }, [role])
 
+  useEffect(() => {
+    const onSocket = (e) => {
+      const n = e.detail?.notification
+      if (!n || n.id == null) return
+      setRows((prev) => {
+        const merged = [n, ...prev.filter((x) => Number(x.id) !== Number(n.id))]
+        return merged.slice(0, 5)
+      })
+    }
+    window.addEventListener('go:app-notification', onSocket)
+    return () => window.removeEventListener('go:app-notification', onSocket)
+  }, [])
+
   return (
     <div className="flex flex-col gap-3" dir="rtl">
       {loading ? <p className="py-2 text-center text-xs text-[#8595AD]">جاري التحميل…</p> : null}

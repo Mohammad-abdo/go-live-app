@@ -62,6 +62,16 @@ export default function Notifications() {
     }
   }, [role])
 
+  useEffect(() => {
+    const onSocket = (e) => {
+      const n = e.detail?.notification
+      if (!n || n.id == null) return
+      setRows((prev) => [n, ...prev.filter((x) => Number(x.id) !== Number(n.id))])
+    }
+    window.addEventListener('go:app-notification', onSocket)
+    return () => window.removeEventListener('go:app-notification', onSocket)
+  }, [])
+
   return (
     <div dir="rtl" className="mx-auto max-w-[390px] pb-8">
       <div className="mb-5 flex items-center justify-between border-b border-[#F0F2F5] pb-4">

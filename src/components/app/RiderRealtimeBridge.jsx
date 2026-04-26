@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
+import { dispatchAppNotificationFromSocket } from '@/lib/appNotificationDispatch'
 import { connectRiderUserSocket } from '@/lib/rideSocket'
 import { getActiveRole, getRiderUserIdFromSession } from '@/lib/sessionTokens'
 
@@ -28,6 +29,9 @@ export default function RiderRealtimeBridge() {
 
     const disconnect = connectRiderUserSocket({
       userId,
+      onAppNotification: (payload) => {
+        dispatchAppNotificationFromSocket(payload)
+      },
       onRideAssigned: (payload) => {
         const id = rideIdFromPayload(payload)
         if (!id) return

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { getActiveRole } from '@/lib/sessionTokens'
 import { getErrorMessage } from '@/lib/apiResponse'
+import { playInAppSound } from '@/lib/notificationSound'
+import { connectRideChatSocket } from '@/lib/rideSocket'
 import * as rider from '@/services/riderService'
 import { cn } from '@/lib/utils'
 
@@ -44,6 +46,7 @@ export default function TripChat() {
   const [driverName, setDriverName] = useState('')
   const [driverAvatar, setDriverAvatar] = useState('')
   const [driverTel, setDriverTel] = useState('')
+  const listEndRef = useRef(null)
 
   const me = useMemo(() => (role === 'driver' ? 'driver' : 'rider'), [role])
 
@@ -94,7 +97,10 @@ export default function TripChat() {
     try {
       const saved = await rider.sendRideChatMessage(rideId, v)
       setText('')
-      setRows((r) => [...r, saved])
+      setRows((r) => {
+        if (saved?.id != null && r.some((x) => Number(x.id) === Number(saved.id))) return r
+        return [...r, saved]
+      })
     } catch (e) {
       toast.error(getErrorMessage(e))
     } finally {
@@ -214,6 +220,7 @@ export default function TripChat() {
             )
           })}
         </AnimatePresence>
+        <div ref={listEndRef} className="h-1 shrink-0" aria-hidden />
       </div>
 
       <div className="sticky bottom-0 border-t border-[#EEF0F4] bg-white px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2">
