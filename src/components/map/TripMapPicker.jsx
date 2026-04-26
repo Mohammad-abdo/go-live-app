@@ -214,6 +214,11 @@ export default function TripMapPicker({
         />
         {readOnly ? (
           <MapFitRouteAndCaptains pickup={pickup} dropoff={dropoff} nearbyDrivers={nearbyDrivers} />
+        ) : nearbyDrivers?.length ? (
+          <>
+            <MapFitRouteAndCaptains pickup={pickup} dropoff={dropoff} nearbyDrivers={nearbyDrivers} />
+            <MapFlyToPickup pickup={pickup} recenterTick={recenterTick} />
+          </>
         ) : (
           <>
             <MapInitialFit pickup={pickup} dropoff={dropoff} />

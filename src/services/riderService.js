@@ -60,6 +60,28 @@ export async function getNearDrivers(body) {
   }
 }
 
+function mapPreviewRadiusPayload(lat, lng) {
+  const raw =
+    import.meta.env.VITE_MAP_NEARBY_PREVIEW_RADIUS_KM || import.meta.env.VITE_NEAR_DRIVER_SEARCH_RADIUS_KM
+  const radiusKm =
+    raw === '' || raw === undefined ? 12 : Number(String(raw).trim())
+  const body = { lat, lng }
+  if (Number.isFinite(radiusKm) && radiusKm > 0) {
+    body.radius_km = Math.min(30, Math.max(2, radiusKm))
+  }
+  return body
+}
+
+/** Home map only: online drivers near pickup (no booking). Requires rider JWT. */
+export async function getMapNearbyDriversPreview({ lat, lng }) {
+  const res = await api.post(`${U}/map/nearby-drivers`, mapPreviewRadiusPayload(lat, lng))
+  const b = res.data
+  return {
+    ok: b?.success !== false,
+    drivers: Array.isArray(b?.data) ? b.data : [],
+  }
+}
+
 /** @param {{ firstName?: string, lastName?: string, email?: string, gender?: string, address?: string }} fields */
 export async function updateRiderProfile(fields) {
   const res = await api.put(`${U}/profile/update`, fields)

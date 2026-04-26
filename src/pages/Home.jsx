@@ -795,6 +795,8 @@ export default function Home() {
 
   const [bookingId, setBookingId] = useState(null)
   const [nearDrivers, setNearDrivers] = useState([])
+  /** Online captains near pickup pin on plan step (no booking) — from `POST /map/nearby-drivers`. */
+  const [mapPreviewDrivers, setMapPreviewDrivers] = useState([])
   /** @type {null | { id?: number, base_fare?: number, status?: string, negotiation_status?: string, negotiating_driver_id?: number|null, negotiated_fare?: number|null }} */
   const [bookingOfferMeta, setBookingOfferMeta] = useState(null)
 
@@ -1032,6 +1034,32 @@ export default function Home() {
     }
   }, [bookingId, pickup])
 
+  const refreshMapPreviewDrivers = useCallback(async () => {
+    if (role !== 'rider') return
+    try {
+      const { ok, drivers } = await rider.getMapNearbyDriversPreview({
+        lat: pickup.lat,
+        lng: pickup.lng,
+      })
+      if (ok && Array.isArray(drivers)) setMapPreviewDrivers(drivers)
+      else setMapPreviewDrivers([])
+    } catch {
+      setMapPreviewDrivers([])
+    }
+  }, [role, pickup.lat, pickup.lng])
+
+  useEffect(() => {
+    if (role !== 'rider' || step !== 'plan') return undefined
+    const first = window.setTimeout(() => {
+      void refreshMapPreviewDrivers()
+    }, 0)
+    const t = window.setInterval(refreshMapPreviewDrivers, 22000)
+    return () => {
+      window.clearTimeout(first)
+      window.clearInterval(t)
+    }
+  }, [role, step, refreshMapPreviewDrivers])
+
   const goDrivers = useCallback(() => {
     setStep('drivers')
     window.setTimeout(() => {
@@ -1127,7 +1155,9 @@ export default function Home() {
           onDropoffChange={setDropoff}
           recenterTick={mapRecenterTick}
           readOnly={step === 'matching' || step === 'drivers'}
-          nearbyDrivers={step === 'matching' || step === 'drivers' ? nearDrivers : []}
+          nearbyDrivers={
+            step === 'plan' ? mapPreviewDrivers : step === 'matching' || step === 'drivers' ? nearDrivers : []
+          }
         />
       ) : (
         <MapBg src={mapSrc} />
