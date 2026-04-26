@@ -23,6 +23,7 @@ import { getErrorMessage, unwrapData } from '@/lib/apiResponse'
 import { api } from '@/lib/api'
 import { connectRideTrackingSocket, resolveSocketBaseUrl } from '@/lib/rideSocket'
 import * as rider from '@/services/riderService'
+import { resolveMediaUrl } from '@/lib/resolveMediaUrl'
 import { cn } from '@/lib/utils'
 
 const ink = 'text-[#0A0C0F]'
@@ -413,7 +414,7 @@ export default function ActiveTrip() {
                 <div className="relative">
                   {driver.avatar ? (
                     <img
-                      src={driver.avatar}
+                      src={resolveMediaUrl(driver.avatar)}
                       alt=""
                       className="size-[56px] rounded-full object-cover ring-[3px] ring-primary/35"
                     />

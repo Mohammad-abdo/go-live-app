@@ -1,18 +1,16 @@
 import axios from 'axios'
+import { normalizeEnvOrigin } from '@/lib/envOrigin'
 import { getActiveRole, getSessionDriverToken, getSessionRiderToken } from '@/lib/sessionTokens'
 
 /**
  * API base URL (no trailing slash).
  * - **Dev / `vite preview`:** leave empty → same origin → Vite `server.proxy` / `preview.proxy` → `VITE_API_PROXY_TARGET` or `VITE_API_ORIGIN`.
- * - **Production (static host ≠ API):** set `VITE_API_ORIGIN=https://nodeteam.site` at **build** time.
+ * - **Production (static host ≠ API):** set `VITE_API_ORIGIN=https://nodeteam.site` at **build** time (single origin; do not paste two URLs separated by commas).
  * Note: `https://nodeteam.site/` (site root) may return **404**; routes live under `/apimobile` and `/api`.
  */
-const origin = String(import.meta.env.VITE_API_ORIGIN || '')
-  .trim()
-  .replace(/\/+$/, '')
+const origin = normalizeEnvOrigin(import.meta.env.VITE_API_ORIGIN)
 
 if (import.meta.env.DEV && !origin) {
-  // eslint-disable-next-line no-console
   console.info('[go-live-tester] VITE_API_ORIGIN empty — same-origin /apimobile (Vite proxy).')
 }
 

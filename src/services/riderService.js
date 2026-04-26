@@ -1,5 +1,5 @@
 import { api } from '@/lib/api'
-import { unwrapData } from '@/lib/apiResponse'
+import { getErrorMessage, unwrapData } from '@/lib/apiResponse'
 
 const U = '/apimobile/user'
 
@@ -60,8 +60,25 @@ export async function acceptDriver(body) {
 }
 
 export async function cancelTrip(body) {
-  const res = await api.post(`${U}/offers/cancel-trip`, body)
-  return unwrapData(res)
+  const bookingId = body?.booking_id ?? body?.bookingId
+  const payload = {
+    ...body,
+    ...(bookingId != null ? { booking_id: String(bookingId).trim() } : {}),
+  }
+  try {
+    const res = await api.post(`${U}/offers/cancel-trip`, payload)
+    return unwrapData(res)
+  } catch (e) {
+    const status = /** @type {any} */ (e)?.response?.status
+    const msg = String(getErrorMessage(e) || '')
+    if (
+      status === 400 &&
+      /already cancelled|Trip is already cancelled|Cannot cancel a completed trip/i.test(msg)
+    ) {
+      return { alreadyFinal: true }
+    }
+    throw e
+  }
 }
 
 export async function getMyBookings(params) {

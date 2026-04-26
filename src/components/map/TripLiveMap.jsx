@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { MapContainer, Marker, TileLayer, useMap } from 'react-leaflet'
+import { MapContainer, Marker, Polyline, TileLayer, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { cn } from '@/lib/utils'
 
@@ -27,9 +27,10 @@ function FitBounds({ points }) {
 }
 
 /**
- * Read-only map: pickup (green), dropoff (red), optional driver (blue).
+ * Read-only OSM map: pickup (green), dropoff (red), optional driver (blue), route hint between stops.
+ * @param {{ className?: string, pickup?: { lat: number, lng: number }, dropoff?: { lat: number, lng: number }, driver?: { lat: number, lng: number } | null, showRoute?: boolean }} props
  */
-export default function TripLiveMap({ className, pickup, dropoff, driver }) {
+export default function TripLiveMap({ className, pickup, dropoff, driver, showRoute = true }) {
   const [mounted, setMounted] = useState(false)
   useEffect(() => {
     setMounted(true)
@@ -56,6 +57,21 @@ export default function TripLiveMap({ className, pickup, dropoff, driver }) {
     return out
   }, [pickup, dropoff, driver])
 
+  const routeLine = useMemo(() => {
+    if (!showRoute) return null
+    const a = [Number(pickup?.lat), Number(pickup?.lng)]
+    const b = [Number(dropoff?.lat), Number(dropoff?.lng)]
+    if (
+      !Number.isFinite(a[0]) ||
+      !Number.isFinite(a[1]) ||
+      !Number.isFinite(b[0]) ||
+      !Number.isFinite(b[1])
+    ) {
+      return null
+    }
+    return [a, b]
+  }, [pickup, dropoff, showRoute])
+
   if (!mounted) {
     return <div className={cn('animate-pulse bg-[#dfe3ea]', className)} aria-hidden />
   }
@@ -79,6 +95,17 @@ export default function TripLiveMap({ className, pickup, dropoff, driver }) {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <FitBounds points={points} />
+        {routeLine ? (
+          <Polyline
+            positions={routeLine}
+            pathOptions={{
+              color: '#5C2D8E',
+              weight: 4,
+              opacity: 0.55,
+              dashArray: '10 8',
+            }}
+          />
+        ) : null}
         {Number.isFinite(Number(pickup?.lat)) && Number.isFinite(Number(pickup?.lng)) ? (
           <Marker position={[Number(pickup.lat), Number(pickup.lng)]} icon={pinIcon('#34C759')} />
         ) : null}

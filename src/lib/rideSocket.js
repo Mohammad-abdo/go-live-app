@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client'
+import { normalizeEnvOrigin } from '@/lib/envOrigin'
 import { getSessionRiderToken } from '@/lib/sessionTokens'
 
 /**
@@ -6,9 +7,9 @@ import { getSessionRiderToken } from '@/lib/sessionTokens'
  * Connecting straight to the API host from another site hits CORS on Engine.IO polling.
  */
 export function resolveSocketBaseUrl() {
-  const fromEnv = String(import.meta.env.VITE_SOCKET_ORIGIN || import.meta.env.VITE_API_ORIGIN || '')
-    .trim()
-    .replace(/\/$/, '')
+  const fromEnv = normalizeEnvOrigin(
+    import.meta.env.VITE_SOCKET_ORIGIN || import.meta.env.VITE_API_ORIGIN || '',
+  )
   if (fromEnv) return fromEnv
   if (import.meta.env.DEV) return ''
   if (typeof window !== 'undefined') return window.location.origin.replace(/\/$/, '')

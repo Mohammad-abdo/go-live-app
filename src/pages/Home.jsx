@@ -10,6 +10,7 @@ import { getErrorMessage } from '@/lib/apiResponse'
 import * as rider from '@/services/riderService'
 import TripMapPicker from '@/components/map/TripMapPicker'
 import DriverHome from '@/pages/driver/DriverHome'
+import { resolveMediaUrl } from '@/lib/resolveMediaUrl'
 import {
   computeFallbackDistanceOnlyFare,
   computeFareFromPricingRule,
@@ -315,7 +316,11 @@ function OffersSheet({
                     <p className={cn('text-xs', muted)}>سعة {item.capacity ?? '—'}</p>
                   </div>
                   {item.image ? (
-                    <img src={item.image} alt="" className="h-[60px] w-20 shrink-0 rounded-xl object-cover" />
+                    <img
+                      src={resolveMediaUrl(item.image)}
+                      alt=""
+                      className="h-[60px] w-20 shrink-0 rounded-xl object-cover"
+                    />
                   ) : (
                     <div className="flex h-[60px] w-20 shrink-0 items-center justify-center rounded-xl bg-[#F0F2F5] text-2xl">
                       🚗
