@@ -30,3 +30,31 @@ export async function geocodeFirstHit(query) {
     return null
   }
 }
+
+/**
+ * @param {number|string} lat
+ * @param {number|string} lng
+ * @returns {Promise<{ lat: number, lng: number, address: string } | null>}
+ */
+export async function reverseGeocode(lat, lng) {
+  const la = Number(lat)
+  const lo = Number(lng)
+  if (!Number.isFinite(la) || !Number.isFinite(lo)) return null
+  const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(String(la))}&lon=${encodeURIComponent(String(lo))}`
+  try {
+    const res = await fetch(url, {
+      headers: {
+        Accept: 'application/json',
+        'Accept-Language': 'ar,en',
+        'User-Agent': UA,
+      },
+    })
+    if (!res.ok) return null
+    const hit = await res.json()
+    const address = String(hit?.display_name || '').trim()
+    if (!address) return null
+    return { lat: la, lng: lo, address }
+  } catch {
+    return null
+  }
+}

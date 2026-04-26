@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input'
 import TripLiveMap from '@/components/map/TripLiveMap'
 import * as driver from '@/services/driverService'
 import { getErrorMessage } from '@/lib/apiResponse'
+import { connectDriverAvailableRidesSocket } from '@/lib/rideSocket'
+import { getDriverUserIdFromSession } from '@/lib/sessionTokens'
 import { cn } from '@/lib/utils'
 
 const ink = 'text-[#0A0C0F]'

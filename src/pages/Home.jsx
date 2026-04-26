@@ -18,7 +18,7 @@ import {
   computeFareFromPricingRule,
   haversineDistanceKm,
 } from '@/lib/tripFare'
-import { geocodeFirstHit } from '@/lib/osmGeocode'
+import { geocodeFirstHit, reverseGeocode } from '@/lib/osmGeocode'
 
 const ink = 'text-[#0A0C0F]'
 const muted = 'text-[#52627A]'
@@ -54,7 +54,7 @@ function offsetPoint(p, dLat, dLng, address) {
   return { lat: p.lat + dLat, lng: p.lng + dLng, address }
 }
 
-function formatCurrentLocationAddress(lat, lng) {
+function formatCoordsFallback(lat, lng) {
   return `موقعي الحالي (${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)})`
 }
 
@@ -669,6 +669,8 @@ function SelectDriverSheet({
 }) {
   const nd = bookingMeta?.negotiating_driver_id
   const nf = bookingMeta?.negotiated_fare
+  const negDriver = nd != null ? drivers.find((d) => Number(d.id) === Number(nd)) : null
+  const negName = negDriver?.name || 'السائق'
   return (
     <>
       <button
@@ -681,8 +683,21 @@ function SelectDriverSheet({
       </button>
       <div className="pointer-events-auto absolute inset-x-0 top-[calc(var(--safe-top)+5rem)] z-[50] flex max-h-[min(560px,calc(100%-var(--safe-top)-6rem))] flex-col gap-3 overflow-y-auto px-3 pb-24">
         <p className={cn('px-2 text-lg font-semibold', ink)}>اختر سائق</p>
+        {nd != null && nf != null ? (
+          <div className="mx-2 rounded-2xl border border-amber-200/90 bg-gradient-to-br from-amber-50 to-white px-4 py-3 shadow-sm">
+            <p className="text-center text-[11px] font-bold uppercase tracking-wide text-amber-900/80">عرض تفاوض</p>
+            <p className="mt-1 text-center text-2xl font-black tabular-nums text-amber-950">
+              E£ {nf}
+            </p>
+            <p className="mt-1 text-center text-xs leading-relaxed text-amber-950/90">
+              {negDriver
+                ? `${negName} — السعر المعروض في بطاقته أدناه؛ اضغط قبول لاعتماد هذا السائق.`
+                : `${negName} يعرض هذا السعر — سيظهر في القائمة عند التحديث؛ يمكنك قبوله من البطاقة.`}
+            </p>
+          </div>
+        ) : null}
         <p className={cn('px-2 text-xs leading-relaxed', muted)}>
-          الأجرة المعروضة هي <strong className="text-ink">تقدير الرحلة</strong> من المسافة وقواعد التسعير، وليست سعر فئة ثابت من بطاقة السائق.
+          كل بطاقة تعرض <strong className="text-ink">السعر المعروض</strong> (تقدير الرحلة، أو عرض/تفاوض من السائق إن وُجد).
         </p>
         {!drivers.length && nd != null && nf != null ? (
           <div className="mx-2 rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-center text-sm font-medium text-amber-950">
@@ -800,13 +815,19 @@ export default function Home() {
         toast.message('تعذر قراءة الموقع. اسمح للمتصفح بالوصول للموقع، أو ضع الدبوس على الخريطة.')
         return
       }
+      const pickupHit = await reverseGeocode(coords.lat, coords.lng)
       const pickupPoint = {
         lat: coords.lat,
         lng: coords.lng,
-        address: formatCurrentLocationAddress(coords.lat, coords.lng),
+        address: pickupHit?.address || formatCoordsFallback(coords.lat, coords.lng),
       }
+      const drop = offsetPoint(pickupPoint, 0.02, 0.02, 'وجهة مقترحة')
+      const dropHit = await reverseGeocode(drop.lat, drop.lng)
       setPickup(pickupPoint)
-      setDropoff(offsetPoint(pickupPoint, 0.02, 0.02, 'وجهة مقترحة'))
+      setDropoff({
+        ...drop,
+        address: dropHit?.address || drop.address,
+      })
       setMapMode('pickup')
       bumpMapRecenter()
       toast.success('تم ضبط الانطلاق من موقعك')
@@ -857,13 +878,17 @@ export default function Home() {
         if (!cancelled && !twoValidSaved) {
           const coords = await readGeolocationPreferred()
           if (!cancelled && coords) {
+            const pickupHit = await reverseGeocode(coords.lat, coords.lng)
             const pickupPoint = {
               lat: coords.lat,
               lng: coords.lng,
-              address: formatCurrentLocationAddress(coords.lat, coords.lng),
+              address: pickupHit?.address || formatCoordsFallback(coords.lat, coords.lng),
             }
+            const drop = offsetPoint(pickupPoint, 0.02, 0.02, 'وجهة مقترحة')
+            const dropHit = await reverseGeocode(drop.lat, drop.lng)
+            if (cancelled) return
             setPickup(pickupPoint)
-            setDropoff(offsetPoint(pickupPoint, 0.02, 0.02, 'وجهة مقترحة'))
+            setDropoff({ ...drop, address: dropHit?.address || drop.address })
             bumpMapRecenter()
           }
         }
@@ -912,9 +937,7 @@ export default function Home() {
   }, [vehicleTypes, selectedVehicleIdx, tripDistanceKm])
 
   const mapSrc = useMemo(() => {
-    if (step === 'plan') return FIGMA_ASSETS.mapRoutePlan
     if (step === 'offers') return FIGMA_ASSETS.mapOffers
-    if (step === 'drivers') return FIGMA_ASSETS.mapSelectDriver
     return FIGMA_ASSETS.mapMatching
   }, [step])
 
@@ -1094,7 +1117,7 @@ export default function Home() {
       dir="rtl"
       className="relative min-h-[calc(100svh-env(safe-area-inset-bottom,0px))] overflow-hidden bg-[#e8eaef]"
     >
-      {step === 'plan' ? (
+      {step === 'plan' || step === 'matching' || step === 'drivers' ? (
         <TripMapPicker
           className="absolute inset-0 z-0 min-h-[calc(100svh-env(safe-area-inset-bottom,0px))]"
           pickup={pickup}
@@ -1103,13 +1126,15 @@ export default function Home() {
           onPickupChange={setPickup}
           onDropoffChange={setDropoff}
           recenterTick={mapRecenterTick}
+          readOnly={step === 'matching' || step === 'drivers'}
+          nearbyDrivers={step === 'matching' || step === 'drivers' ? nearDrivers : []}
         />
       ) : (
         <MapBg src={mapSrc} />
       )}
       {step === 'drivers' ? <div className="pointer-events-none absolute inset-0 z-[1] bg-black/25" aria-hidden /> : null}
       {step !== 'plan' && step !== 'drivers' ? <FloatingRouteCard pickup={pickup} dropoff={dropoff} /> : null}
-      {step !== 'plan' && step !== 'drivers' ? <PinCluster /> : null}
+      {step === 'offers' ? <PinCluster /> : null}
       {step === 'matching' || (step === 'offers' && actionLoading) ? <SearchRadarPulse /> : null}
 
       {step === 'plan' ? (

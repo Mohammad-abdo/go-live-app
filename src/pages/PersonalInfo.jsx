@@ -37,7 +37,7 @@ export default function PersonalInfo() {
       : user?.name || '—'
   const phone = user?.contactNumber || user?.phone || '—'
   const email = user?.email || '—'
-  const avatarUrl = resolveAvatar(user?.avatar)
+  const avatarUrl = resolveMediaUrl(user?.avatar) || null
 
   return (
     <MobileScreenShell
