@@ -61,8 +61,19 @@ export default function TripLiveMap({ className, pickup, dropoff, driver }) {
   }
 
   return (
-    <div className={cn('size-full [&_.leaflet-container]:size-full [&_.leaflet-container]:bg-[#e8eaef]', className)}>
-      <MapContainer center={center} zoom={13} scrollWheelZoom className="z-0 size-full" style={{ minHeight: '100%' }}>
+    <div
+      className={cn(
+        'isolate size-full min-h-0 touch-manipulation [&_.leaflet-container]:size-full [&_.leaflet-container]:min-h-[inherit] [&_.leaflet-container]:bg-[#e8eaef]',
+        className,
+      )}
+    >
+      <MapContainer
+        center={center}
+        zoom={13}
+        scrollWheelZoom
+        className="z-0 size-full min-h-[inherit]"
+        style={{ minHeight: 'inherit', height: '100%', width: '100%' }}
+      >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

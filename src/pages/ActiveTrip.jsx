@@ -17,6 +17,7 @@ import TripLiveMap from '@/components/map/TripLiveMap'
 import { getActiveRole } from '@/lib/sessionTokens'
 import { getErrorMessage, unwrapData } from '@/lib/apiResponse'
 import { api } from '@/lib/api'
+import { connectRideTrackingSocket, resolveSocketBaseUrl } from '@/lib/rideSocket'
 import * as rider from '@/services/riderService'
 import { cn } from '@/lib/utils'
 
@@ -54,6 +55,8 @@ export default function ActiveTrip() {
   const [busy, setBusy] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
+  const [wsDriver, setWsDriver] = useState(null)
+  const [socketLive, setSocketLive] = useState(false)
 
   const loadBooking = useCallback(async () => {
     if (!rideId) return
@@ -119,13 +122,27 @@ export default function ActiveTrip() {
   }, [booking, pulse])
 
   const driverPoint = useMemo(() => {
+    if (wsDriver) return wsDriver
     const loc = pulse?.driverLocation
     if (!loc) return null
     const lat = num(loc.lat)
     const lng = num(loc.lng)
     if (lat == null || lng == null) return null
     return { lat, lng }
-  }, [pulse])
+  }, [pulse, wsDriver])
+
+  useEffect(() => {
+    if (role !== 'rider' || !rideId || !driverId) return undefined
+    setWsDriver(null)
+    setSocketLive(false)
+    const disconnect = connectRideTrackingSocket({
+      rideId,
+      onDriverLocation: (loc) => setWsDriver(loc),
+      onConnected: () => setSocketLive(true),
+      onError: () => setSocketLive(false),
+    })
+    return disconnect
+  }, [role, rideId, driverId])
 
   const liveStatus = pulse?.status ?? booking?.status
   const fare = pulse?.price ?? booking?.totalAmount
@@ -231,20 +248,30 @@ export default function ActiveTrip() {
   const cancelled = String(booking.status) === 'cancelled'
   const showRateCta = completed && !booking.isDriverRated
 
+  const socketHostHint = resolveSocketBaseUrl() || (import.meta.env.DEV ? 'نفس المنفذ (بروكسي)' : 'نفس الموقع')
+
   return (
-    <div dir="rtl" className="relative -mx-4 -mt-4 flex min-h-[calc(100svh-var(--safe-top)-var(--safe-bottom))] flex-col">
-      <div className="relative z-0 min-h-[42vh] flex-1">
+    <div
+      dir="rtl"
+      className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-[#f4f6fa] [-webkit-overflow-scrolling:touch]"
+    >
+      <div className="relative z-0 flex min-h-[200px] flex-[0_1_40%] basis-[38dvh] max-h-[42dvh] shrink-0 overflow-hidden">
         {pickup && dropoff ? (
-          <TripLiveMap className="absolute inset-0 min-h-[42vh]" pickup={pickup} dropoff={dropoff} driver={driverPoint} />
+          <TripLiveMap
+            className="absolute inset-0 h-full min-h-[200px] w-full"
+            pickup={pickup}
+            dropoff={dropoff}
+            driver={driverPoint}
+          />
         ) : (
           <div className="absolute inset-0 bg-[#e8eaef]" />
         )}
       </div>
 
-      <div className="pointer-events-auto relative z-10 flex max-h-[58vh] flex-col rounded-t-[24px] bg-white px-4 pb-6 pt-3 shadow-[0_-8px_32px_rgba(0,0,0,0.12)]">
+      <div className="pointer-events-auto relative z-10 flex min-h-0 flex-[1_1_auto] flex-col rounded-t-[24px] bg-white px-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pt-3 shadow-[0_-8px_32px_rgba(0,0,0,0.12)]">
         <div className="mx-auto mb-2 h-1 w-10 shrink-0 rounded-full bg-[#e7e9f2]" />
-        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
-          <div className="flex items-center justify-between gap-2">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pb-1">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <Link
               to="/app/trips"
               className="flex size-10 shrink-0 items-center justify-center rounded-full border border-[#F0F2F5] bg-white text-primary shadow-sm"
@@ -252,7 +279,18 @@ export default function ActiveTrip() {
             >
               <ChevronRight className="size-5 rtl:rotate-180" />
             </Link>
-            <span className="rounded-full bg-[#F0F2F5] px-3 py-1 text-xs font-semibold text-ink">{statusAr(liveStatus)}</span>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {socketLive ? (
+                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-800">
+                  تتبع مباشر
+                </span>
+              ) : (
+                <span className="max-w-[200px] rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-medium text-amber-900">
+                  التحديث: REST + {socketHostHint}
+                </span>
+              )}
+              <span className="rounded-full bg-[#F0F2F5] px-3 py-1 text-xs font-semibold text-ink">{statusAr(liveStatus)}</span>
+            </div>
           </div>
           <div className="flex items-start justify-between gap-2 text-end">
             <Navigation className="mt-0.5 size-5 shrink-0 text-primary" />

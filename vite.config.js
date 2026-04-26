@@ -17,6 +17,8 @@ export default defineConfig(({ mode }) => {
   const proxy = {
     '/apimobile': { target: apiTarget, changeOrigin: true, secure: true },
     '/api': { target: apiTarget, changeOrigin: true, secure: true },
+    /** Socket.IO (rider trip tracking `subscribe-ride` + `driver-location-for-ride`) */
+    '/socket.io': { target: apiTarget, changeOrigin: true, secure: true, ws: true },
   }
 
   return {
