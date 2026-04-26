@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
@@ -73,6 +73,11 @@ export default function MenuDrawerContent({ onNavigate }) {
   const role = getActiveRole()
   const [profile, setProfile] = useState(null)
 
+  const menuItems = useMemo(
+    () => MENU_ITEMS.filter((item) => !(role === 'driver' && item.to === '/app/addresses')),
+    [role],
+  )
+
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -134,7 +139,7 @@ export default function MenuDrawerContent({ onNavigate }) {
       </div>
 
       <div className="flex flex-col">
-        {MENU_ITEMS.map(({ to, label, Icon, end }) => (
+        {menuItems.map(({ to, label, Icon, end }) => (
           <MenuRow key={to} to={to} label={label} Icon={Icon} onNavigate={onNavigate} end={end} />
         ))}
       </div>

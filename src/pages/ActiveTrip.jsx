@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import TripLiveMap from '@/components/map/TripLiveMap'
+import DriverActiveTrip from '@/pages/driver/DriverActiveTrip'
 import { getActiveRole } from '@/lib/sessionTokens'
 import { getErrorMessage, unwrapData } from '@/lib/apiResponse'
 import { api } from '@/lib/api'
@@ -279,14 +280,7 @@ export default function ActiveTrip() {
   }
 
   if (role === 'driver') {
-    return (
-      <div dir="rtl" className="mx-auto max-w-md space-y-4 py-6 text-center">
-        <p className={cn('text-sm', muted)}>تفاصيل رحلة الراكب تظهر من تطبيق الراكب. استخدم قائمة الرحلات ككابتن.</p>
-        <Button asChild className="rounded-xl">
-          <Link to="/app/trips">رحلاتي</Link>
-        </Button>
-      </div>
-    )
+    return <DriverActiveTrip />
   }
 
   if (loadErr && !booking) {

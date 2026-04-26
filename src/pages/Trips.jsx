@@ -282,9 +282,14 @@ export default function Trips() {
               <div key={r.id} className="rounded-[16px] border border-[#F0F2F5] bg-white p-3 text-end shadow-sm">
                 <p className="text-sm font-semibold">#{r.id} — {r.status}</p>
                 <p className="text-xs text-[#52627A]">{r.startAddress}</p>
-                <Button asChild variant="link" className="mt-1 h-auto p-0 text-primary">
-                  <Link to={`/app/chat?rideId=${r.id}`}>محادثة</Link>
-                </Button>
+                <div className="mt-2 flex flex-wrap justify-end gap-2">
+                  <Button asChild variant="link" className="h-auto p-0 text-primary">
+                    <Link to={`/app/trip/${r.id}`}>تفاصيل الرحلة</Link>
+                  </Button>
+                  <Button asChild variant="link" className="h-auto p-0 text-primary">
+                    <Link to={`/app/chat?rideId=${r.id}`}>محادثة</Link>
+                  </Button>
+                </div>
               </div>
             ))}
           {!loading && !driverRides.some((r) => ACTIVE.has(r.status)) ? (

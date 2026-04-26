@@ -9,6 +9,7 @@ import { getActiveRole } from '@/lib/sessionTokens'
 import { getErrorMessage } from '@/lib/apiResponse'
 import * as rider from '@/services/riderService'
 import TripMapPicker from '@/components/map/TripMapPicker'
+import DriverHome from '@/pages/driver/DriverHome'
 import {
   computeFallbackDistanceOnlyFare,
   computeFareFromPricingRule,
@@ -559,24 +560,6 @@ function FloatingRouteCard({ pickup, dropoff }) {
   )
 }
 
-function DriverHomePanel() {
-  return (
-    <div dir="rtl" className="flex min-h-[calc(100svh-env(safe-area-inset-bottom,0px))] flex-col items-center justify-center gap-4 bg-[#f4f6fa] px-6 text-center">
-      <p className="text-lg font-semibold text-ink">أنت في وضع الكابتن</p>
-      <p className="max-w-sm text-sm leading-relaxed text-[#52627A]">
-        طلب الرحلة والخريطة مفعّلان لدور <strong>الراكب</strong> فقط. من حسابي اختر «راكب» إن كان لديك جلسة راكب، ثم ارجع للرئيسية.
-      </p>
-      <div className="flex flex-wrap justify-center gap-2">
-        <Button asChild className="rounded-xl">
-          <Link to="/app/trips">رحلاتي</Link>
-        </Button>
-        <Button asChild variant="outline" className="rounded-xl">
-          <Link to="/app/account">حسابي</Link>
-        </Button>
-      </div>
-    </div>
-  )
-}
 
 /**
  * Rider flow: خطة المسار ← العروض ← مطابقة السائقين ← اختيار سائق (كلها من الـ API عند دور الراكب).
@@ -827,7 +810,7 @@ export default function Home() {
   }, [bookingId])
 
   if (role === 'driver') {
-    return <DriverHomePanel />
+    return <DriverHome />
   }
 
   return (
