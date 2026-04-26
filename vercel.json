@@ -7,6 +7,14 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/apimobile/:path*",
+      "destination": "https://nodeteam.site/apimobile/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://nodeteam.site/api/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
@@ -23,4 +31,3 @@
     }
   ]
 }
-
