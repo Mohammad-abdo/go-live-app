@@ -12,6 +12,7 @@ function pinIcon(color) {
   })
 }
 
+/** Fit map to pickup + dropoff only — driver updates must not reset zoom (was re-fitting on every GPS tick). */
 function FitBounds({ points }) {
   const map = useMap()
   useEffect(() => {
@@ -46,16 +47,15 @@ export default function TripLiveMap({ className, pickup, dropoff, driver, showRo
     return [30.0444, 31.2357]
   }, [pickup, dropoff])
 
-  const points = useMemo(() => {
+  /** Stops only — used for initial fit so live driver position does not trigger fitBounds / zoom reset. */
+  const boundsPoints = useMemo(() => {
     const out = []
     const p1 = [Number(pickup?.lat), Number(pickup?.lng)]
     const p2 = [Number(dropoff?.lat), Number(dropoff?.lng)]
-    const p3 = [Number(driver?.lat), Number(driver?.lng)]
     if (Number.isFinite(p1[0]) && Number.isFinite(p1[1])) out.push(p1)
     if (Number.isFinite(p2[0]) && Number.isFinite(p2[1])) out.push(p2)
-    if (Number.isFinite(p3[0]) && Number.isFinite(p3[1])) out.push(p3)
     return out
-  }, [pickup, dropoff, driver])
+  }, [pickup, dropoff])
 
   const routeLine = useMemo(() => {
     if (!showRoute) return null
@@ -94,7 +94,7 @@ export default function TripLiveMap({ className, pickup, dropoff, driver, showRo
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <FitBounds points={points} />
+        <FitBounds points={boundsPoints} />
         {routeLine ? (
           <Polyline
             positions={routeLine}

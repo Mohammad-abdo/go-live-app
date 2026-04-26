@@ -1,6 +1,8 @@
 import { Bell, Menu } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
+import { GoLogoMark } from '@/components/branding/GoLogoMark'
 import { useAppChrome } from '@/contexts/AppChromeContext'
+import { getActiveRole } from '@/lib/sessionTokens'
 import { cn } from '@/lib/utils'
 
 /**
@@ -11,6 +13,7 @@ export default function FloatingAppControls() {
   const { pathname } = useLocation()
   const controlsAtTop = pathname === '/app/home' || /^\/app\/trip\/[^/]+$/.test(pathname)
   const { openMenu, openNotifications } = useAppChrome()
+  const showDriverHomeLogo = pathname === '/app/home' && getActiveRole() === 'driver'
 
   return (
     <div
@@ -19,6 +22,14 @@ export default function FloatingAppControls() {
         controlsAtTop ? 'top-[max(0.75rem,var(--safe-top))]' : 'bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))]',
       )}
     >
+      {showDriverHomeLogo ? (
+        <div
+          className="pointer-events-none flex size-11 items-center justify-center rounded-full border border-[#E8EAEF] bg-white/95 shadow-md backdrop-blur-sm"
+          aria-hidden
+        >
+          <GoLogoMark size="sm" className="text-primary drop-shadow-sm" />
+        </div>
+      ) : null}
       <button
         type="button"
         onClick={openMenu}

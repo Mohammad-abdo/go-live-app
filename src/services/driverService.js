@@ -3,6 +3,12 @@ import { unwrapData } from '@/lib/apiResponse'
 
 const D = '/apimobile/driver'
 
+/** Public list of services for captain registration (no auth). */
+export async function getDriverRegistrationServices() {
+  const res = await api.get(`${D}/services`)
+  return unwrapData(res)
+}
+
 export async function getMyRides(params) {
   const res = await api.get(`${D}/rides`, { params })
   return unwrapData(res)

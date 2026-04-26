@@ -4,7 +4,6 @@ import { toast } from 'sonner'
 import { Banknote, Clock, LocateFixed, MapPin, Search, TicketPercent } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { GoLogoMark } from '@/components/branding/GoLogoMark'
 import TripLiveMap from '@/components/map/TripLiveMap'
 import * as driver from '@/services/driverService'
 import { getErrorMessage } from '@/lib/apiResponse'
@@ -356,11 +355,7 @@ export default function DriverHome() {
         aria-hidden
       />
 
-      <div className="pointer-events-none absolute start-4 top-[max(5.25rem,var(--safe-top))] z-30">
-        <GoLogoMark size="sm" className="pointer-events-none text-primary drop-shadow-sm" />
-      </div>
-
-      <div className="absolute inset-x-5 top-[max(6.5rem,var(--safe-top))] z-20 flex flex-col gap-2">
+      <div className="absolute inset-x-5 top-[max(5.25rem,var(--safe-top))] z-20 flex flex-col gap-2">
         <div className="rounded-[20px] bg-white p-2.5 shadow-[0_8px_28px_rgba(10,12,15,0.08)]">
           <button
             type="button"
