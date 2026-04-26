@@ -13,6 +13,20 @@ export async function getMyStatus() {
   return unwrapData(res)
 }
 
+/** Full driver profile including `stats` (totalRides, completedRides, totalEarnings, …). */
+export async function getDriverProfile() {
+  const res = await api.get(`${D}/profile`)
+  return unwrapData(res)
+}
+
+/** Summary from GET /ratings (average from riders). */
+export async function getDriverRatingsSummary() {
+  const res = await api.get(`${D}/ratings`, { params: { page: 1, per_page: 1 } })
+  const body = res?.data
+  if (body?.summary) return body.summary
+  return { averageRating: 0, totalRatings: 0 }
+}
+
 export async function goOnlineOffline() {
   const res = await api.post(`${D}/status/go-online`)
   return unwrapData(res)
