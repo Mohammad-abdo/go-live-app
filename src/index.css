@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 251 58% 52%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 220 24% 6%;
+    --foreground: 210 40% 98%;
+    --card: 220 24% 8%;
+    --card-foreground: 210 40% 98%;
+    --muted: 217 19% 18%;
+    --muted-foreground: 215 20% 65%;
+    --border: 217 19% 18%;
+    --input: 217 19% 18%;
+    --ring: 251 58% 55%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+
+  #root {
+    @apply min-h-svh w-full;
+  }
+}
+
+/* Leaflet divIcon: remove default tile background on marker wrapper */
+.go-map-pin {
+  background: transparent !important;
+  border: none !important;
+}
