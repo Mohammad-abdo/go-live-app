@@ -18,10 +18,20 @@ export function getSessionDriverToken() {
   }
 }
 
+/**
+ * Active app role. If `SESSION_ACTIVE_ROLE` was cleared but a token remains,
+ * infer from which JWT exists so RequireAuth + Home do not treat a captain-only
+ * session as "rider" and call `/apimobile/user/*` without a rider token (401).
+ */
 export function getActiveRole() {
   try {
     const r = sessionStorage.getItem(SESSION_ACTIVE_ROLE)
-    return r === 'driver' ? 'driver' : 'rider'
+    if (r === 'driver' || r === 'rider') return r
+    const rider = getSessionRiderToken()
+    const drv = getSessionDriverToken()
+    if (drv && !rider) return 'driver'
+    if (rider && !drv) return 'rider'
+    return 'rider'
   } catch {
     return 'rider'
   }

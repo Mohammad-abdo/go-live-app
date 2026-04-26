@@ -31,6 +31,21 @@ function getExistingAuthorization(config) {
   return h.Authorization || ''
 }
 
+/**
+ * Pick JWT for this request. User routes must always use the rider token;
+ * driver routes the driver token — otherwise `/apimobile/user/*` gets a
+ * driver JWT and the API responds 401.
+ */
+function bearerForRequestUrl(url) {
+  const u = String(url || '')
+  if (u.includes('/apimobile/driver/')) return getSessionDriverToken()
+  if (u.includes('/apimobile/user/')) return getSessionRiderToken()
+  if (u.includes('/apimobile/chat/')) {
+    return getActiveRole() === 'driver' ? getSessionDriverToken() : getSessionRiderToken()
+  }
+  return getActiveRole() === 'driver' ? getSessionDriverToken() : getSessionRiderToken()
+}
+
 /** Attach JWT from login session (skipped for public auth routes and when caller sets Authorization). */
 api.interceptors.request.use((config) => {
   const url = String(config.url || '')
@@ -45,8 +60,7 @@ api.interceptors.request.use((config) => {
   }
   if (getExistingAuthorization(config)) return config
 
-  const role = getActiveRole()
-  const token = role === 'driver' ? getSessionDriverToken() : getSessionRiderToken()
+  const token = bearerForRequestUrl(url)
   if (token) {
     config.headers = config.headers || {}
     config.headers.Authorization = `Bearer ${token}`
