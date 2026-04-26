@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 
 function AppShellInner() {
   const { pathname } = useLocation()
-  const isFullBleedMap = pathname === '/app/home'
+  const isFullBleedMap = pathname === '/app/home' || /^\/app\/trip\/[^/]+$/.test(pathname)
   const { menuOpen, notificationsOpen, setMenuOpen, setNotificationsOpen } = useAppChrome()
 
   return (

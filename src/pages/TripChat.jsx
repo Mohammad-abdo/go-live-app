@@ -89,7 +89,16 @@ export default function TripChat() {
           <ChevronRight className="size-5 text-primary rtl:rotate-180" />
         </Link>
         <h1 className="text-lg font-bold text-[#0A0C0F]">محادثة الرحلة</h1>
-        <span className="size-9" aria-hidden />
+        {rideId ? (
+          <Link
+            to={`/app/trip/${rideId}`}
+            className="text-xs font-semibold text-primary underline-offset-2 hover:underline"
+          >
+            تفاصيل
+          </Link>
+        ) : (
+          <span className="size-9" aria-hidden />
+        )}
       </div>
 
       {loading ? <p className="text-center text-sm text-[#52627A]">جاري التحميل…</p> : null}

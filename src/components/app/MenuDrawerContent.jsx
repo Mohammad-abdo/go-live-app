@@ -60,7 +60,7 @@ const MENU_ITEMS = [
   { to: '/app/personal', label: 'المعلومات الشخصية', Icon: User, end: true },
   { to: '/app/addresses', label: 'العناوين المحفوظة', Icon: MapPin },
   { to: '/app/payment', label: 'الدفع', Icon: CreditCard },
-  { to: '/app/trips', label: 'السجل', Icon: History },
+  { to: '/app/trips', label: 'الرحلات والتتبع', Icon: History },
   { to: '/app/wallet', label: 'المحفظة', Icon: Wallet },
   { to: '/app/notifications', label: 'الإشعارات', Icon: Bell },
   { to: '/app/language', label: 'اللغة', Icon: Globe },

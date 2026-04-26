@@ -14,6 +14,8 @@ import Notifications from '@/pages/Notifications'
 import Support from '@/pages/Support'
 import Addresses from '@/pages/Addresses'
 import TripChat from '@/pages/TripChat'
+import ActiveTrip from '@/pages/ActiveTrip'
+import RateTrip from '@/pages/RateTrip'
 import HelpCenter from '@/pages/HelpCenter'
 import PersonalInfo from '@/pages/PersonalInfo'
 import Wallet from '@/pages/Wallet'
@@ -48,6 +50,8 @@ export default function App() {
           <Route path="notifications" element={<Notifications />} />
           <Route path="support" element={<Support />} />
           <Route path="addresses" element={<Addresses />} />
+          <Route path="trip/:rideId/rate" element={<RateTrip />} />
+          <Route path="trip/:rideId" element={<ActiveTrip />} />
           <Route path="chat" element={<TripChat />} />
           <Route path="help" element={<HelpCenter />} />
           <Route path="personal" element={<PersonalInfo />} />

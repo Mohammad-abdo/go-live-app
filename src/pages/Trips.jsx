@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { ChevronLeft, Clock, MessageSquareText, Phone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -89,12 +89,20 @@ function TripInProgressSheet({ ride, role }) {
           </div>
         ) : null}
         {rideId ? (
-          <Button asChild className="w-full rounded-xl" variant="secondary">
-            <Link to={`/app/chat?rideId=${rideId}`} className="flex items-center justify-center gap-2">
-              <MessageSquareText className="size-5 text-primary" />
-              محادثة الرحلة
-            </Link>
-          </Button>
+          <div className="flex flex-col gap-2">
+            <Button asChild className="w-full rounded-xl">
+              <Link to={`/app/trip/${rideId}`} className="flex items-center justify-center gap-2">
+                <Navigation className="size-5" />
+                تتبع الرحلة والدفع
+              </Link>
+            </Button>
+            <Button asChild className="w-full rounded-xl" variant="secondary">
+              <Link to={`/app/chat?rideId=${rideId}`} className="flex items-center justify-center gap-2">
+                <MessageSquareText className="size-5 text-primary" />
+                محادثة الرحلة
+              </Link>
+            </Button>
+          </div>
         ) : null}
       </div>
       <div className="flex gap-2.5 py-2">
@@ -129,8 +137,10 @@ function TripInProgressSheet({ ride, role }) {
 
 export default function Trips() {
   const location = useLocation()
+  const navigate = useNavigate()
   const role = getActiveRole()
-  const [tab, setTab] = useState('current')
+  const highlightId = location.state?.highlightBookingId
+  const [tab, setTab] = useState(() => (highlightId != null ? 'past' : 'current'))
   const [activeRide, setActiveRide] = useState(null)
   const [past, setPast] = useState([])
   const [driverRides, setDriverRides] = useState([])
@@ -169,8 +179,6 @@ export default function Trips() {
       c = true
     }
   }, [role, loadDriver, loadRider])
-
-  const highlightId = location.state?.highlightBookingId
 
   return (
     <div dir="rtl">
@@ -217,17 +225,24 @@ export default function Trips() {
                   </div>
                 ))
               : past.map((b) => (
-                  <div
+                  <button
+                    type="button"
                     key={b.book_id}
+                    onClick={() => navigate(`/app/trip/${b.book_id}`)}
                     className={cn(
-                      'rounded-[16px] border border-[#F0F2F5] bg-white p-3 text-end shadow-sm',
+                      'w-full rounded-[16px] border border-[#F0F2F5] bg-white p-3 text-end shadow-sm transition-colors hover:border-primary/30 hover:bg-[#fafafa]',
                       highlightId === b.book_id && 'ring-2 ring-primary',
                     )}
                   >
                     <p className="text-sm font-semibold text-ink">{b.from?.address || '—'} → {b.to?.address || '—'}</p>
                     <p className="text-xs text-[#52627A]">{b.status}</p>
                     {b.totalAmount != null ? <p className="mt-1 text-sm">E£ {b.totalAmount}</p> : null}
-                  </div>
+                    {String(b.status) === 'completed' && !b.isDriverRated ? (
+                      <p className="mt-2 text-xs font-semibold text-primary">اضغط للتقييم وعرض التفاصيل</p>
+                    ) : (
+                      <p className="mt-2 text-xs text-[#8595AD]">عرض التفاصيل والخريطة</p>
+                    )}
+                  </button>
                 ))}
             {!loading && tab === 'past' && (role === 'driver' ? driverRides : past).length === 0 ? (
               <div className="flex min-h-[30vh] flex-col items-center justify-center text-center">

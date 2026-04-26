@@ -695,7 +695,7 @@ export default function Home() {
       try {
         await rider.acceptDriver({ driver_id: driverId, booking_id: bookingId })
         toast.success('تم قبول السائق')
-        navigate('/app/trips', { replace: false, state: { highlightBookingId: bookingId } })
+        navigate(`/app/trip/${bookingId}`, { replace: false })
       } catch (e) {
         toast.error(getErrorMessage(e))
       } finally {

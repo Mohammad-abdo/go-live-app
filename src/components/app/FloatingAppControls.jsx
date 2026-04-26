@@ -9,14 +9,14 @@ import { cn } from '@/lib/utils'
  */
 export default function FloatingAppControls() {
   const { pathname } = useLocation()
-  const isHome = pathname === '/app/home'
+  const controlsAtTop = pathname === '/app/home' || /^\/app\/trip\/[^/]+$/.test(pathname)
   const { openMenu, openNotifications } = useAppChrome()
 
   return (
     <div
       className={cn(
         'pointer-events-none fixed end-3 z-[45] flex flex-col gap-2',
-        isHome ? 'top-[max(0.75rem,var(--safe-top))]' : 'bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))]',
+        controlsAtTop ? 'top-[max(0.75rem,var(--safe-top))]' : 'bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))]',
       )}
     >
       <button

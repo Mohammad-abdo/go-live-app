@@ -74,6 +74,48 @@ export async function getActiveRide() {
   return unwrapData(res)
 }
 
+/** @param {string|number} bookingId */
+export async function getTripStatus(bookingId) {
+  const res = await api.get(`${U}/offers/trip-status/${bookingId}`)
+  return unwrapData(res)
+}
+
+/** @param {{ driver_id: number|string, booking_id: number|string }} body */
+export async function trackDriver(body) {
+  const res = await api.post(`${U}/offers/track-driver`, body)
+  return unwrapData(res)
+}
+
+/** @param {{ driver_id?: number|string, booking_id: number|string }} body */
+export async function tripEnd(body) {
+  const res = await api.post(`${U}/offers/trip-end`, body)
+  return unwrapData(res)
+}
+
+/** @param {{ driver_id: number|string, booking_id: number|string, rate: number|string, text?: string }} body */
+export async function rateDriver(body) {
+  const res = await api.post(`${U}/offers/rate-driver`, body)
+  return unwrapData(res)
+}
+
+/** @param {string|number} id */
+export async function getBookingById(id) {
+  const res = await api.get(`${U}/my-bookings/${id}`)
+  return unwrapData(res)
+}
+
+/** @param {{ book_id: number|string, text: string, trip_code?: string }} body */
+export async function addBookingReview(body) {
+  const res = await api.post(`${U}/my-bookings/review`, body)
+  return unwrapData(res)
+}
+
+/** @param {{ rideRequestId: number|string, amount: number|string }} body */
+export async function tipDriver(body) {
+  const res = await api.post(`${U}/offers/tip`, body)
+  return unwrapData(res)
+}
+
 export async function getNotifications() {
   const res = await api.get(`${U}/notifications`)
   return unwrapData(res)
