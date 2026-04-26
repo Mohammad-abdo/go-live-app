@@ -179,7 +179,7 @@ export default function ActiveTrip() {
   }, [pulse, wsDriver])
 
   useEffect(() => {
-    if (role !== 'rider' || !rideId || !driverId) return undefined
+    if (role !== 'rider' || !rideId) return undefined
     setWsDriver(null)
     setSocketLive(false)
     const disconnect = connectRideTrackingSocket({
@@ -187,9 +187,29 @@ export default function ActiveTrip() {
       onDriverLocation: (loc) => setWsDriver(loc),
       onConnected: () => setSocketLive(true),
       onError: () => setSocketLive(false),
+      onTripCompleted: async () => {
+        try {
+          await loadBooking()
+          await pollStatus()
+        } catch {
+          /* ignore */
+        }
+        toast.success('أنهى السائق الرحلة')
+        navigate(`/app/trip/${rideId}/rate`, { replace: false })
+      },
+      onTripCancelled: async () => {
+        try {
+          await loadBooking()
+          await pollStatus()
+        } catch {
+          /* ignore */
+        }
+        toast.message('ألغى السائق الرحلة')
+        navigate('/app/trips', { replace: false })
+      },
     })
     return disconnect
-  }, [role, rideId, driverId])
+  }, [role, rideId, loadBooking, pollStatus, navigate])
 
   const serviceData = useMemo(() => parseServiceData(booking?.serviceData), [booking])
 
