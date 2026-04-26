@@ -91,3 +91,17 @@ export async function logoutDriver() {
   const res = await api.post(`${D}/auth/logout`)
   return unwrapData(res)
 }
+
+/**
+ * @param {FormData | { firstName?: string, lastName?: string, email?: string, gender?: string, address?: string, countryCode?: string }} body
+ */
+export async function updateDriverProfile(body) {
+  const res = await api.put(`${D}/profile/update`, body)
+  return unwrapData(res)
+}
+
+/** @param {FormData | { carModel?: string, carColor?: string, carPlateNumber?: string, carProductionYear?: number|string }} body */
+export async function updateDriverVehicle(body) {
+  const res = await api.put(`${D}/vehicle/update`, body)
+  return unwrapData(res)
+}

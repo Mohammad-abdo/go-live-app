@@ -399,7 +399,17 @@ function OffersSheet({
   )
 }
 
-function MatchingSheet({ driverCount, onCancelRequest, onPickDrivers, estimatedFare, distanceKm }) {
+function MatchingSheet({
+  driverCount,
+  driverPreview,
+  bookingMeta,
+  onCancelRequest,
+  onPickDrivers,
+  estimatedFare,
+  distanceKm,
+}) {
+  const nd = bookingMeta?.negotiating_driver_id
+  const nf = bookingMeta?.negotiated_fare
   return (
     <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-[50] flex max-h-[72%] flex-col rounded-t-[30px] bg-white shadow-[0_-8px_32px_rgba(0,0,0,0.1)]">
       <div className="flex flex-col gap-2.5 px-4 pb-2 pt-3">
@@ -420,11 +430,43 @@ function MatchingSheet({ driverCount, onCancelRequest, onPickDrivers, estimatedF
             {driverCount ? `عرض على ${driverCount} سائق` : 'جاري المطابقة'}
           </p>
         </div>
+        {nd != null && nf != null ? (
+          <div className="rounded-xl bg-amber-50 px-3 py-2 text-center text-xs font-semibold text-amber-900">
+            سائق يقترح سعراً: <span className="tabular-nums">E£ {nf}</span> — افتح «اختر سائق» للقبول أو اختر سائقاً آخر.
+          </div>
+        ) : null}
+        {Array.isArray(driverPreview) && driverPreview.length > 0 ? (
+          <div className="max-h-[140px] space-y-1.5 overflow-y-auto rounded-xl border border-[#F0F2F5] bg-[#FAFBFC] px-3 py-2">
+            <p className={cn('text-[11px] font-bold', ink)}>أقرب السائقين والأسعار</p>
+            {driverPreview.map((d) => (
+              <div key={d.id} className="flex items-center justify-between gap-2 text-end text-xs">
+                <span className="shrink-0 font-bold tabular-nums text-primary">
+                  E£ {d.display_price ?? d.price ?? estimatedFare}
+                  {d.bid_amount != null ? (
+                    <span className="me-1 text-[10px] font-semibold text-emerald-700">عرض</span>
+                  ) : null}
+                  {d.is_negotiating ? (
+                    <span className="me-1 text-[10px] font-semibold text-amber-800">تفاوض</span>
+                  ) : null}
+                </span>
+                <span className="min-w-0 truncate text-[#3d4553]">
+                  {d.name || 'سائق'}
+                  {d.distance_km != null ? (
+                    <span className="ms-1 tabular-nums text-[#8595AD]">· {d.distance_km} كم</span>
+                  ) : null}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : null}
         <div className="flex flex-col gap-4 rounded-2xl bg-white px-4 py-4">
           <p className={cn('text-end text-sm', ink)}>
             البحث عن أقرب الكباتن ضمن النطاق. تقدير الرحلة الحالي:{' '}
             <span className="font-bold text-primary tabular-nums">E£ {estimatedFare}</span> —{' '}
             <span className="tabular-nums">{Number(distanceKm).toFixed(1)} كم</span>
+          </p>
+          <p className={cn('text-end text-[11px] leading-relaxed', muted)}>
+            يتحدّث السائقون مع السعر عبر «عرض» أو «تفاوض»؛ القائمة تُحدَّث كل بضع ثوانٍ.
           </p>
           <div className="h-1 w-full overflow-hidden rounded bg-[#F0F2F5]">
             <div className="h-full w-[84%] rounded bg-primary" />
@@ -447,13 +489,27 @@ function MatchingSheet({ driverCount, onCancelRequest, onPickDrivers, estimatedF
 }
 
 function DriverPickCard({ driver, tripFareEstimate, distanceKm, onAccept }) {
+  const display = driver.display_price ?? driver.price ?? tripFareEstimate
+  const base = driver.price ?? tripFareEstimate
+  const hasOffer = driver.bid_amount != null || driver.is_negotiating || Number(display) !== Number(base)
   return (
     <div className="flex w-full flex-col gap-2.5 rounded-[20px] border-t border-[#e4e4e4] bg-white px-5 py-3 shadow-sm">
       <div className="flex w-full items-center justify-between gap-2">
-        <p className={cn('text-xs', muted)}>تقدير للمسافة</p>
+        <p className={cn('text-xs', muted)}>{hasOffer ? 'السعر المعروض' : 'تقدير الرحلة'}</p>
         <div className="text-end">
-          <p className="text-lg font-semibold text-primary tabular-nums">E£ {tripFareEstimate}</p>
-          <p className={cn('text-[10px] leading-tight', muted)}>{Number(distanceKm).toFixed(1)} كم · نفس مركبتك المختارة</p>
+          <p className="text-lg font-semibold text-primary tabular-nums">E£ {display}</p>
+          {hasOffer ? (
+            <p className={cn('text-[10px] leading-tight', muted)}>
+              أساس التطبيق: E£ {base}
+              {driver.bid_amount != null ? ' · عرض سائق' : ''}
+              {driver.is_negotiating ? ' · تفاوض' : ''}
+            </p>
+          ) : (
+            <p className={cn('text-[10px] leading-tight', muted)}>{Number(distanceKm).toFixed(1)} كم · نفس مركبتك المختارة</p>
+          )}
+          {driver.distance_km != null ? (
+            <p className={cn('text-[10px] font-medium text-primary/80', muted)}>يبعد حوالي {driver.distance_km} كم</p>
+          ) : null}
         </div>
       </div>
       <div className="flex items-center justify-end gap-2.5">
@@ -471,7 +527,11 @@ function DriverPickCard({ driver, tripFareEstimate, distanceKm, onAccept }) {
           <p className="text-sm text-[#7a7c87]">{driver.vehicleType || ''}</p>
         </div>
         {driver.avatar ? (
-          <img src={driver.avatar} alt="" className="size-12 shrink-0 rounded-full object-cover ring-2 ring-white" />
+          <img
+            src={resolveMediaUrl(driver.avatar)}
+            alt=""
+            className="size-12 shrink-0 rounded-full object-cover ring-2 ring-white"
+          />
         ) : (
           <div className="size-12 shrink-0 rounded-full bg-[#E0E4EB] ring-2 ring-white" />
         )}
@@ -585,6 +645,8 @@ export default function Home() {
 
   const [bookingId, setBookingId] = useState(null)
   const [nearDrivers, setNearDrivers] = useState([])
+  /** @type {null | { id?: number, base_fare?: number, status?: string, negotiation_status?: string, negotiating_driver_id?: number|null, negotiated_fare?: number|null }} */
+  const [bookingOfferMeta, setBookingOfferMeta] = useState(null)
 
   /** Bootstrap runs only for rider; drivers skip loading state. */
   const [bootLoading, setBootLoading] = useState(() => getActiveRole() === 'rider')
@@ -745,7 +807,7 @@ export default function Home() {
         return
       }
       setBookingId(bid)
-      const { ok, drivers, message } = await rider.getNearDrivers({
+      const { ok, drivers, message, booking: bookingSnap } = await rider.getNearDrivers({
         booking_id: bid,
         booking_location: { lat: pickup.lat, lng: pickup.lng },
       })
@@ -756,9 +818,11 @@ export default function Home() {
         )
         await rider.cancelTrip({ booking_id: bid }).catch(() => {})
         setBookingId(null)
+        setBookingOfferMeta(null)
         return
       }
       setNearDrivers(drivers)
+      setBookingOfferMeta(bookingSnap && typeof bookingSnap === 'object' ? bookingSnap : null)
       setStep('matching')
     } catch (e) {
       toast.error(getErrorMessage(e))
@@ -768,6 +832,34 @@ export default function Home() {
   }, [vehicleTypes, selectedVehicleIdx, pickup, dropoff])
 
   const goDrivers = useCallback(() => setStep('drivers'), [])
+
+  const refreshNearDrivers = useCallback(async () => {
+    if (!bookingId || !pickup) return
+    try {
+      const { ok, drivers, booking: bookingSnap } = await rider.getNearDrivers({
+        booking_id: bookingId,
+        booking_location: { lat: pickup.lat, lng: pickup.lng },
+      })
+      if (ok && Array.isArray(drivers) && drivers.length) {
+        setNearDrivers(drivers)
+        if (bookingSnap && typeof bookingSnap === 'object') setBookingOfferMeta(bookingSnap)
+      }
+    } catch {
+      /* keep list */
+    }
+  }, [bookingId, pickup])
+
+  useEffect(() => {
+    if ((step !== 'matching' && step !== 'drivers') || !bookingId) return undefined
+    const first = window.setTimeout(() => {
+      refreshNearDrivers()
+    }, 0)
+    const t = setInterval(refreshNearDrivers, 5000)
+    return () => {
+      window.clearTimeout(first)
+      clearInterval(t)
+    }
+  }, [step, bookingId, refreshNearDrivers])
 
   const acceptDriver = useCallback(
     async (driverId) => {
@@ -798,6 +890,7 @@ export default function Home() {
     }
     setBookingId(null)
     setNearDrivers([])
+    setBookingOfferMeta(null)
     setStep('offers')
   }, [bookingId])
 
@@ -811,6 +904,7 @@ export default function Home() {
     }
     setBookingId(null)
     setNearDrivers([])
+    setBookingOfferMeta(null)
     setStep('plan')
   }, [bookingId])
 
@@ -870,6 +964,8 @@ export default function Home() {
       {step === 'matching' ? (
         <MatchingSheet
           driverCount={nearDrivers.length}
+          driverPreview={nearDrivers.slice(0, 8)}
+          bookingMeta={bookingOfferMeta}
           onPickDrivers={goDrivers}
           onCancelRequest={() => setCancelOpen(true)}
           estimatedFare={fare}

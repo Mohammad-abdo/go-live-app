@@ -3,6 +3,11 @@ import { getErrorMessage, unwrapData } from '@/lib/apiResponse'
 
 const U = '/apimobile/user'
 
+export async function getRiderProfile() {
+  const res = await api.get(`${U}/profile`)
+  return unwrapData(res)
+}
+
 export async function getHomeServices() {
   const res = await api.get(`${U}/home/services`)
   return unwrapData(res)
@@ -51,7 +56,20 @@ export async function getNearDrivers(body) {
     ok: b?.success !== false,
     message: b?.message,
     drivers: Array.isArray(b?.data) ? b.data : [],
+    booking: b?.booking && typeof b.booking === 'object' ? b.booking : null,
   }
+}
+
+/** @param {{ firstName?: string, lastName?: string, email?: string, gender?: string, address?: string }} fields */
+export async function updateRiderProfile(fields) {
+  const res = await api.put(`${U}/profile/update`, fields)
+  return unwrapData(res)
+}
+
+/** Rider accepts current negotiated fare (ride already in negotiating + driver set). Optional after driver counter-offer. */
+export async function acceptNegotiation(rideRequestId) {
+  const res = await api.post(`${U}/negotiation/accept`, { rideRequestId })
+  return unwrapData(res)
 }
 
 export async function acceptDriver(body) {

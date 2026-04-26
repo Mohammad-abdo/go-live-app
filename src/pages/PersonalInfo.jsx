@@ -3,18 +3,8 @@ import { Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import { api } from '@/lib/api'
 import { getActiveRole } from '@/lib/sessionTokens'
+import { resolveMediaUrl } from '@/lib/resolveMediaUrl'
 import MobileScreenShell from '@/components/MobileScreenShell'
-
-const origin = (import.meta.env.VITE_API_ORIGIN || '').replace(/\/$/, '')
-
-function resolveAvatar(src) {
-  if (!src || typeof src !== 'string') return null
-  const s = src.trim()
-  if (!s) return null
-  if (s.startsWith('http')) return s
-  if (!origin) return s.startsWith('/') ? s : `/${s}`
-  return `${origin}${s.startsWith('/') ? '' : '/'}${s.replace(/^\//, '')}`
-}
 
 export default function PersonalInfo() {
   const role = getActiveRole()
@@ -54,13 +44,21 @@ export default function PersonalInfo() {
       rtl
       title="المعلومات الشخصية"
       headerRight={
-        <Link
-          to="/app/home"
-          className="flex size-10 items-center justify-center rounded-full border border-[#E8EAEF] bg-white text-primary shadow-sm"
-          aria-label="الرئيسية"
-        >
-          <ChevronRight className="size-5 rtl:rotate-180" />
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/app/personal/edit"
+            className="rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-bold text-primary"
+          >
+            تعديل
+          </Link>
+          <Link
+            to="/app/home"
+            className="flex size-10 items-center justify-center rounded-full border border-[#E8EAEF] bg-white text-primary shadow-sm"
+            aria-label="الرئيسية"
+          >
+            <ChevronRight className="size-5 rtl:rotate-180" />
+          </Link>
+        </div>
       }
       bodyClassName="px-4 py-5"
     >

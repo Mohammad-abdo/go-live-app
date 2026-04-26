@@ -18,6 +18,7 @@ import ActiveTrip from '@/pages/ActiveTrip'
 import RateTrip from '@/pages/RateTrip'
 import HelpCenter from '@/pages/HelpCenter'
 import PersonalInfo from '@/pages/PersonalInfo'
+import EditProfile from '@/pages/EditProfile'
 import Wallet from '@/pages/Wallet'
 import Language from '@/pages/Language'
 import Legal from '@/pages/Legal'
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="chat" element={<TripChat />} />
           <Route path="help" element={<HelpCenter />} />
           <Route path="personal" element={<PersonalInfo />} />
+          <Route path="personal/edit" element={<EditProfile />} />
           <Route path="wallet" element={<Wallet />} />
           <Route path="language" element={<Language />} />
           <Route path="legal" element={<Legal />} />
