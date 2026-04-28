@@ -1007,10 +1007,13 @@ export default function Home() {
       setSearchStartedAt(Date.now())
       toast.message('جاري البحث عن سائقين قريبين…')
       // First pull immediately (do NOT cancel booking if none found — we widen gradually)
+      const bidStr = String(bid).trim()
+      const pLat = Number(pickup?.lat)
+      const pLng = Number(pickup?.lng)
       void rider
         .getNearDrivers({
-          booking_id: bid,
-          booking_location: { lat: pickup.lat, lng: pickup.lng },
+          booking_id: bidStr,
+          booking_location: { lat: pLat, lng: pLng },
           radius_km: 5,
         })
         .then(({ ok, drivers, booking: bookingSnap }) => {
@@ -1026,14 +1029,23 @@ export default function Home() {
   }, [vehicleTypes, selectedVehicleIdx, pickup, dropoff])
 
   const refreshNearDrivers = useCallback(async () => {
-    if (!bookingId || !pickup) return
+    const bidStr = bookingId != null ? String(bookingId).trim() : ''
+    const pLat = Number(pickup?.lat)
+    const pLng = Number(pickup?.lng)
+    if (!/^\d+$/.test(bidStr)) return
+    if (!Number.isFinite(pLat) || !Number.isFinite(pLng)) return
     try {
       const { ok, drivers, booking: bookingSnap } = await rider.getNearDrivers({
-        booking_id: bookingId,
-        booking_location: { lat: pickup.lat, lng: pickup.lng },
+        booking_id: bidStr,
+        booking_location: { lat: pLat, lng: pLng },
         radius_km: searchRadiusKm,
       })
       if (bookingSnap && String(bookingSnap.status) === 'cancelled') {
+        setNearDrivers([])
+        setBookingOfferMeta(bookingSnap)
+        return
+      }
+      if (bookingSnap && String(bookingSnap.status) === 'completed') {
         setNearDrivers([])
         setBookingOfferMeta(bookingSnap)
         return
