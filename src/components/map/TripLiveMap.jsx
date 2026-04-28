@@ -86,7 +86,9 @@ export default function TripLiveMap({ className, pickup, dropoff, driver, showRo
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          // Avoid {s} subdomains (a/b/c) since some networks throttle them differently.
+          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+          referrerPolicy="no-referrer"
         />
         <FitBounds points={boundsPoints} />
         <MapOverlayControls focus={driver || pickup || dropoff || null} />

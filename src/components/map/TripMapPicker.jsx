@@ -245,7 +245,9 @@ export default function TripMapPicker({
       <MapContainer center={center} zoom={13} scrollWheelZoom className="z-0 size-full" style={{ minHeight: '100%' }}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          // Avoid {s} subdomains (a/b/c) since some networks throttle them differently.
+          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+          referrerPolicy="no-referrer"
         />
         <MapOverlayControls focus={pickup || null} />
         {readOnly && searchRadiusKm != null && Number(searchRadiusKm) > 0 ? (
