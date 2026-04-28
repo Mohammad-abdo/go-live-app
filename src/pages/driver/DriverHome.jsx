@@ -128,8 +128,12 @@ export default function DriverHome() {
 
   const coords = useMemo(() => {
     if (livePos) return { lat: livePos.lat, lng: livePos.lng }
-    return manualCoords
-  }, [livePos, manualCoords])
+    if (manualCoords) return manualCoords
+    const pLat = Number(profile?.latitude)
+    const pLng = Number(profile?.longitude)
+    if (Number.isFinite(pLat) && Number.isFinite(pLng)) return { lat: pLat, lng: pLng }
+    return null
+  }, [livePos, manualCoords, profile?.latitude, profile?.longitude])
 
   const loadStatus = useCallback(async () => {
     try {
