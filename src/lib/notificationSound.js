@@ -17,10 +17,17 @@ function getCtx() {
 /**
  * @param {'notification' | 'chat'} kind
  */
-export function playInAppSound(kind = 'notification') {
+export async function playInAppSound(kind = 'notification') {
   const ctx = getCtx()
   if (!ctx) return
-  if (ctx.state === 'suspended') void ctx.resume().catch(() => {})
+  if (ctx.state === 'suspended') {
+    try {
+      await ctx.resume()
+    } catch {
+      // ignore: browser may block autoplay audio until user gesture
+      return
+    }
+  }
 
   const osc = ctx.createOscillator()
   const gain = ctx.createGain()

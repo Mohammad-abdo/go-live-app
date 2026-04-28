@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
-import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
+import { Circle, MapContainer, Marker, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import { cn } from '@/lib/utils'
 import { reverseGeocode } from '@/lib/osmGeocode'
@@ -104,6 +104,27 @@ function MapFitRouteAndCaptains({ pickup, dropoff, nearbyDrivers }) {
   return null
 }
 
+/** Read-only: fit pickup + dropoff once (do NOT refit on driver poll updates). */
+function MapFitStopsOnce({ pickup, dropoff, fitKey }) {
+  const map = useMap()
+  const doneKey = useRef('')
+  useEffect(() => {
+    const k = String(fitKey || '')
+    if (!k || doneKey.current === k) return
+    doneKey.current = k
+    try {
+      map.fitBounds(L.latLngBounds(L.latLng(pickup.lat, pickup.lng), L.latLng(dropoff.lat, dropoff.lng)), {
+        padding: [56, 56],
+        maxZoom: 15,
+        animate: false,
+      })
+    } catch {
+      // ignore
+    }
+  }, [map, pickup.lat, pickup.lng, dropoff.lat, dropoff.lng, fitKey])
+  return null
+}
+
 /** After «موقعي GPS» — fly to pickup so the user sees themselves immediately. */
 function MapFlyToPickup({ pickup, recenterTick }) {
   const map = useMap()
@@ -131,6 +152,7 @@ export default function TripMapPicker({
   recenterTick = 0,
   readOnly = false,
   nearbyDrivers = [],
+  searchRadiusKm = null,
 }) {
   const geoPickupSeq = useRef(0)
   const geoDropoffSeq = useRef(0)
@@ -201,6 +223,23 @@ export default function TripMapPicker({
     return out
   }, [nearbyDrivers])
 
+  const leadDriver = captainMarkers[0] || null
+  const lineDriverToPickup = useMemo(() => {
+    if (!readOnly || !leadDriver) return null
+    return [
+      [leadDriver.lat, leadDriver.lng],
+      [pickup.lat, pickup.lng],
+    ]
+  }, [readOnly, leadDriver, pickup.lat, pickup.lng])
+
+  const linePickupToDropoff = useMemo(() => {
+    if (!readOnly) return null
+    return [
+      [pickup.lat, pickup.lng],
+      [dropoff.lat, dropoff.lng],
+    ]
+  }, [readOnly, pickup.lat, pickup.lng, dropoff.lat, dropoff.lng])
+
   return (
     <div className={cn('size-full [&_.leaflet-container]:size-full [&_.leaflet-container]:bg-[#e8eaef]', className)}>
       <MapContainer center={center} zoom={13} scrollWheelZoom className="z-0 size-full" style={{ minHeight: '100%' }}>
@@ -209,8 +248,39 @@ export default function TripMapPicker({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <MapOverlayControls focus={pickup || null} />
+        {readOnly && searchRadiusKm != null && Number(searchRadiusKm) > 0 ? (
+          <>
+            <Circle
+              center={[pickup.lat, pickup.lng]}
+              radius={Math.min(80, Math.max(1, Number(searchRadiusKm))) * 1000}
+              pathOptions={{
+                color: '#5C2D8E',
+                weight: 2,
+                opacity: 0.35,
+                fillColor: '#5C2D8E',
+                fillOpacity: 0.08,
+                className: 'go-search-circle',
+              }}
+            />
+            <Circle
+              center={[pickup.lat, pickup.lng]}
+              radius={Math.min(80, Math.max(1, Number(searchRadiusKm))) * 1000}
+              pathOptions={{
+                color: '#5C2D8E',
+                weight: 1,
+                opacity: 0.18,
+                dashArray: '6 8',
+                className: 'go-search-circle-dash',
+              }}
+            />
+          </>
+        ) : null}
         {readOnly ? (
-          <MapFitRouteAndCaptains pickup={pickup} dropoff={dropoff} nearbyDrivers={nearbyDrivers} />
+          <MapFitStopsOnce
+            pickup={pickup}
+            dropoff={dropoff}
+            fitKey={`${pickup.lat},${pickup.lng}|${dropoff.lat},${dropoff.lng}|ro`}
+          />
         ) : nearbyDrivers?.length ? (
           <>
             <MapFitRouteAndCaptains pickup={pickup} dropoff={dropoff} nearbyDrivers={nearbyDrivers} />
@@ -222,6 +292,18 @@ export default function TripMapPicker({
             <MapFlyToPickup pickup={pickup} recenterTick={recenterTick} />
           </>
         )}
+        {linePickupToDropoff ? (
+          <Polyline
+            positions={linePickupToDropoff}
+            pathOptions={{ color: '#5C2D8E', weight: 4, opacity: 0.55, dashArray: '10 8' }}
+          />
+        ) : null}
+        {lineDriverToPickup ? (
+          <Polyline
+            positions={lineDriverToPickup}
+            pathOptions={{ color: '#2563eb', weight: 4, opacity: 0.65 }}
+          />
+        ) : null}
         {!readOnly ? <MapClickLayer mode={mapMode} onPick={onPick} /> : null}
         {captainMarkers.map((p) => (
           <Marker key={p.key} position={[p.lat, p.lng]} icon={captainIcon()} />

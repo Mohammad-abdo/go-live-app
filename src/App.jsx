@@ -25,6 +25,7 @@ import Legal from '@/pages/Legal'
 import Signup from '@/pages/Signup'
 import DriverSignup from '@/pages/DriverSignup'
 import VerifyOtp from '@/pages/VerifyOtp'
+import DriverNegotiationWaiting from '@/pages/driver/DriverNegotiationWaiting'
 
 export default function App() {
   return (
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="addresses" element={<Addresses />} />
           <Route path="trip/:rideId/rate" element={<RateTrip />} />
           <Route path="trip/:rideId" element={<ActiveTrip />} />
+          <Route path="driver/negotiation/:rideId" element={<DriverNegotiationWaiting />} />
           <Route path="chat" element={<TripChat />} />
           <Route path="help" element={<HelpCenter />} />
           <Route path="personal" element={<PersonalInfo />} />

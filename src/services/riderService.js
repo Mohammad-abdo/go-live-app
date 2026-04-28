@@ -40,6 +40,8 @@ export async function createBooking(body) {
 }
 
 function nearDriversPayload(body) {
+  // If the caller already provided a radius, do not override it.
+  if (body && body.radius_km != null) return body
   const raw = import.meta.env.VITE_NEAR_DRIVER_SEARCH_RADIUS_KM
   const radiusKm =
     raw === '' || raw === undefined ? 15 : Number(String(raw).trim())

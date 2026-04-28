@@ -292,8 +292,12 @@ export default function DriverHome() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return rides
-    return rides.filter((r) => {
+    // Safety net: never show finished rides in “available” list even if API misbehaves.
+    const activeOnly = (Array.isArray(rides) ? rides : []).filter(
+      (r) => ['pending', 'searching'].includes(String(r?.status || '')),
+    )
+    if (!q) return activeOnly
+    return activeOnly.filter((r) => {
       const a = `${r.pickup?.address || ''} ${r.dropoff?.address || ''} ${r.rider?.name || ''}`.toLowerCase()
       return a.includes(q)
     })
@@ -334,7 +338,7 @@ export default function DriverHome() {
       setNegotiateAmount('')
       await fetchNearby()
       await loadNegotiating()
-      navigate(`/app/trips`)
+      navigate(`/app/driver/negotiation/${negotiateId}`, { replace: false })
     } catch (e) {
       toast.error(getErrorMessage(e))
     } finally {
@@ -465,7 +469,7 @@ export default function DriverHome() {
                 <li key={nr.id}>
                   <Link
                     className="text-sm font-semibold text-ink underline-offset-2 hover:underline"
-                    to={`/app/trip/${nr.id}`}
+                    to={`/app/driver/negotiation/${nr.id}`}
                   >
                     رحلة #{nr.id} — متابعة التفاوض
                   </Link>

@@ -48,3 +48,41 @@
   background: transparent !important;
   border: none !important;
 }
+
+/* Leaflet SVG circles: subtle pulse for search radius */
+.go-search-circle {
+  transform-origin: center;
+  animation: goCirclePulse 2.4s ease-in-out infinite;
+}
+
+.go-search-circle-dash {
+  transform-origin: center;
+  animation: goCircleDash 3.2s ease-in-out infinite;
+}
+
+@keyframes goCirclePulse {
+  0% {
+    stroke-opacity: 0.18;
+    fill-opacity: 0.05;
+  }
+  50% {
+    stroke-opacity: 0.5;
+    fill-opacity: 0.12;
+  }
+  100% {
+    stroke-opacity: 0.18;
+    fill-opacity: 0.05;
+  }
+}
+
+@keyframes goCircleDash {
+  0% {
+    stroke-opacity: 0.12;
+  }
+  50% {
+    stroke-opacity: 0.35;
+  }
+  100% {
+    stroke-opacity: 0.12;
+  }
+}

@@ -85,7 +85,7 @@ export default function TripChat() {
           return [...prev, msg]
         })
         if (msg.senderType && String(msg.senderType) !== String(me)) {
-          playInAppSound('message').catch(() => {})
+          playInAppSound('chat').catch(() => {})
         }
       },
       onError: () => {
@@ -127,7 +127,7 @@ export default function TripChat() {
         if (saved?.id != null && r.some((x) => Number(x.id) === Number(saved.id))) return r
         return [...r, saved]
       })
-      playInAppSound('send').catch(() => {})
+      playInAppSound('chat').catch(() => {})
     } catch (e) {
       toast.error(getErrorMessage(e))
     } finally {
