@@ -5,7 +5,6 @@ import { AnimatePresence, motion } from 'framer-motion'
 import {
   Car,
   ChevronLeft,
-  ChevronRight,
   MessageSquare,
   Phone,
   Share2,
@@ -25,6 +24,7 @@ import { connectRideTrackingSocket, resolveSocketBaseUrl } from '@/lib/rideSocke
 import * as rider from '@/services/riderService'
 import { resolveMediaUrl } from '@/lib/resolveMediaUrl'
 import LiveTripSheet from '@/components/app/LiveTripSheet'
+import LiveTripSheetHeader from '@/components/app/LiveTripSheetHeader'
 import { cn } from '@/lib/utils'
 
 const ink = 'text-[#0A0C0F]'
@@ -371,19 +371,7 @@ export default function ActiveTrip() {
       </div>
 
       <LiveTripSheet>
-
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <Link
-            to="/app/trips"
-            className="flex size-11 shrink-0 items-center justify-center rounded-full border border-[#EEF0F4] bg-white text-primary shadow-[0_2px_12px_rgba(92,45,142,0.12)]"
-            aria-label="رجوع"
-          >
-            <ChevronRight className="size-5 rtl:rotate-180" />
-          </Link>
-          <span className="rounded-full bg-[#F4F6FA] px-3 py-1 text-[11px] font-semibold text-[#52627A]">
-            {statusAr(liveStatus)}
-          </span>
-        </div>
+        <LiveTripSheetHeader backTo="/app/trips" statusText={statusAr(liveStatus)} />
 
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pb-2">
           <div className="text-end">

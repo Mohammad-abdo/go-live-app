@@ -8,6 +8,7 @@ import { getErrorMessage } from '@/lib/apiResponse'
 import * as driver from '@/services/driverService'
 import { useGeoWatch } from '@/lib/useGeoWatch'
 import LiveTripSheet from '@/components/app/LiveTripSheet'
+import LiveTripSheetHeader from '@/components/app/LiveTripSheetHeader'
 import { cn } from '@/lib/utils'
 
 const ink = 'text-[#0A0C0F]'
@@ -251,18 +252,7 @@ export default function DriverActiveTrip() {
       <div className="absolute inset-x-0 bottom-0 top-[min(42vh,360px)] z-10 flex flex-col">
         <LiveTripSheet className="h-full rounded-t-[20px] bg-[#fafafa] pt-4 shadow-[0_-12px_40px_rgba(0,0,0,0.14)]">
 
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <Link
-            to="/app/trips"
-            className="flex size-10 shrink-0 items-center justify-center rounded-full border border-[#F4F4F4] bg-white text-primary shadow-sm"
-            aria-label="رجوع"
-          >
-            <ChevronRight className="size-5 rtl:rotate-180" />
-          </Link>
-          <span className="rounded-full border border-[#F4F4F4] bg-white px-3 py-1 text-[11px] font-semibold text-[#111827]">
-            {statusAr(st)}
-          </span>
-        </div>
+        <LiveTripSheetHeader backTo="/app/trips" statusText={statusAr(st)} compact />
 
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pb-2">
           {negotiating ? (
