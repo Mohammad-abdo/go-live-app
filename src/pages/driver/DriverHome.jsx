@@ -547,7 +547,12 @@ export default function DriverHome() {
           ? filtered.map((r) => {
               const fareNum = displayTripFare(r.pricing)
               const fareStr = fareNum != null ? `${fareNum}` : '—'
-              const km = r.distance != null ? `${r.distance} km` : r.pricing?.distance != null ? `${r.pricing.distance} km` : null
+              // Trip total distance (pickup → dropoff)
+              const tripKm = r.pricing?.tripDistanceKm ?? r.pricing?.distance
+              const tripKmStr = tripKm != null && Number(tripKm) > 0 ? `${Number(tripKm).toFixed(1)} km` : null
+              // Driver-to-pickup distance
+              const toPickupKm = r.driverToPickupKm ?? r.distance
+              const toPickupStr = toPickupKm != null && Number(toPickupKm) > 0 ? `على بُعد ${Number(toPickupKm).toFixed(1)} km` : null
               const pay = r.pricing?.paymentType === 'cash' ? 'كاش' : r.pricing?.paymentType === 'wallet' ? 'محفظة' : 'دفع'
               const durMin = r.pricing?.duration != null ? Math.max(1, Math.round(Number(r.pricing.duration))) : null
               const estN = numericEstimatedFare(r.pricing?.estimatedPrice)
@@ -593,7 +598,8 @@ export default function DriverHome() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 text-center">
                       <p className="text-lg font-semibold text-primary">{fareStr}</p>
-                      {km ? <p className="text-sm text-[#bec2ce]">{km}</p> : null}
+                      {tripKmStr ? <p className="text-sm text-[#bec2ce]">{tripKmStr}</p> : null}
+                      {toPickupStr ? <p className="text-xs text-[#8595AD]">{toPickupStr}</p> : null}
                     </div>
                     <div className="flex min-w-0 items-center gap-2">
                       <div className="min-w-0 text-end">
