@@ -93,6 +93,11 @@ export async function getNotifications(params) {
   return res.data
 }
 
+export async function getUnreadNotificationCount() {
+  const res = await api.get(`${D}/notifications`, { params: { page: 1, per_page: 1, unread_only: 'true' } })
+  return res.data
+}
+
 export async function logoutDriver() {
   const res = await api.post(`${D}/auth/logout`)
   return unwrapData(res)

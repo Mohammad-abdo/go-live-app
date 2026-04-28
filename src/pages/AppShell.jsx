@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import RiderRealtimeBridge from '@/components/app/RiderRealtimeBridge'
 import DriverAppSocketBridge from '@/components/app/DriverAppSocketBridge'
+import NotificationsFallbackBridge from '@/components/app/NotificationsFallbackBridge'
 import FloatingAppControls from '@/components/app/FloatingAppControls'
 import MenuDrawerContent from '@/components/app/MenuDrawerContent'
 import NotificationsPeek from '@/components/app/NotificationsPeek'
@@ -28,6 +29,7 @@ function AppShellInner() {
       <FloatingAppControls />
       <RiderRealtimeBridge />
       <DriverAppSocketBridge />
+      <NotificationsFallbackBridge />
       <main
         className={cn(
           'relative z-0 flex min-h-0 flex-1 flex-col pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]',

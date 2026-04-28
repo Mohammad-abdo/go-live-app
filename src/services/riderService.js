@@ -180,6 +180,11 @@ export async function getNotifications() {
   return unwrapData(res)
 }
 
+export async function getUnreadNotificationCount() {
+  const res = await api.get(`${U}/notifications/unread-count`)
+  return unwrapData(res)
+}
+
 export async function getBankCards() {
   const res = await api.get(`${U}/bank-cards`)
   return unwrapData(res)
