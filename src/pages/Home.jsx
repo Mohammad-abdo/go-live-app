@@ -381,6 +381,7 @@ function OffersSheet({
   onSearchDrivers,
   onBack,
   loading,
+  noticeText,
 }) {
   const v = vehicles[selectedIdx]
   const nameAr = v?.nameAr || v?.name || 'مركبة'
@@ -407,6 +408,11 @@ function OffersSheet({
       <div className="flex flex-1 flex-col overflow-hidden rounded-t-[30px] bg-white shadow-[0_-8px_32px_rgba(0,0,0,0.1)]">
         <div className="flex max-h-[min(420px,46vh)] flex-col gap-5 overflow-y-auto px-4 py-4">
           <div className="mx-auto h-1 w-12 rounded-full bg-[#e7e9f2]" />
+          {noticeText ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-end text-[12px] font-bold text-amber-900">
+              {noticeText}
+            </div>
+          ) : null}
           <Link
             to="/app/payment"
             className="flex items-center justify-between rounded-xl border border-dashed border-primary/25 bg-primary/[0.04] px-3 py-2.5"
@@ -827,6 +833,7 @@ export default function Home() {
   const [searchStage, setSearchStage] = useState(0)
   const [searchStartedAt, setSearchStartedAt] = useState(0)
   const [radiusHint, setRadiusHint] = useState(null)
+  const [searchTimedOut, setSearchTimedOut] = useState(false)
 
   /** Bootstrap runs only for rider; drivers skip loading state. */
   const [bootLoading, setBootLoading] = useState(() => getActiveRole() === 'rider')
@@ -989,6 +996,7 @@ export default function Home() {
     }
     setActionLoading(true)
     try {
+      setSearchTimedOut(false)
       const created = await rider.createBooking({
         vehicle_id: v.vehicle_id,
         paymentMethod: 'cash',
@@ -1027,6 +1035,22 @@ export default function Home() {
       setActionLoading(false)
     }
   }, [vehicleTypes, selectedVehicleIdx, pickup, dropoff])
+
+  // Hard timeout: if no offers within 60s, stop matching and return user to offers screen.
+  useEffect(() => {
+    if (step !== 'matching' || !bookingId) return
+    const t = window.setTimeout(() => {
+      const offered = (Array.isArray(nearDrivers) ? nearDrivers : []).filter(hasNegotiationOffer)
+      if (offered.length) return
+      setSearchTimedOut(true)
+      setNearDrivers([])
+      setBookingOfferMeta(null)
+      setBookingId(null)
+      setStep('offers')
+      toast.message('لم نعثر على عروض خلال دقيقة. حاول مرة أخرى.')
+    }, 60_000)
+    return () => window.clearTimeout(t)
+  }, [step, bookingId, nearDrivers])
 
   const refreshNearDrivers = useCallback(async () => {
     const bidStr = bookingId != null ? String(bookingId).trim() : ''
@@ -1283,6 +1307,7 @@ export default function Home() {
           onSearchDrivers={searchDrivers}
           onBack={goPlan}
           loading={actionLoading}
+          noticeText={searchTimedOut ? 'لم نعثر على عروض خلال دقيقة. اضغط "ابحث" للمحاولة مرة أخرى.' : null}
         />
       ) : null}
       {step === 'matching' ? (
