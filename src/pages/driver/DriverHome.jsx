@@ -171,13 +171,8 @@ export default function DriverHome() {
 
   const heading = livePos?.heading
   const fetchNearby = useCallback(async () => {
-    if (!coords) {
-      setRides([])
-      setBlockMsg(null)
-      return
-    }
     try {
-      if (online) {
+      if (online && coords) {
         await driver
           .updateDriverLocation({
             latitude: coords.lat,
@@ -186,11 +181,13 @@ export default function DriverHome() {
           })
           .catch(() => {})
       }
-      const pack = await driver.getAvailableRides({
-        latitude: coords.lat,
-        longitude: coords.lng,
-        radius: CLIENT_RADIUS_KM,
-      })
+      // Send coords if available; backend will still return rides even without them
+      const params = { radius: CLIENT_RADIUS_KM }
+      if (coords) {
+        params.latitude = coords.lat
+        params.longitude = coords.lng
+      }
+      const pack = await driver.getAvailableRides(params)
       if (pack?.searchRadius != null) setSearchRadiusKm(Number(pack.searchRadius))
       if (pack?.isDriverBlocked) {
         setBlockMsg(pack.blockMessage || 'تم تقييد عرض الطلبات الجديدة مؤقتاً.')
@@ -237,10 +234,6 @@ export default function DriverHome() {
   }, [loadStatus, loadDashboard])
 
   useEffect(() => {
-    if (!coords) {
-      setLoading(false)
-      return
-    }
     let cancelled = false
     ;(async () => {
       setLoading(true)
@@ -250,16 +243,16 @@ export default function DriverHome() {
     return () => {
       cancelled = true
     }
+  // Re-run when coords changes (GPS acquired) or fetchNearby dep changes
   }, [coords, fetchNearby])
 
   useEffect(() => {
-    if (!coords) return
     const ms = online ? 8000 : 25000
     const t = setInterval(() => {
       fetchNearby().catch(() => {})
     }, ms)
     return () => clearInterval(t)
-  }, [coords, fetchNearby, online])
+  }, [fetchNearby, online])
 
   const onLocate = useCallback(async () => {
     setLocBusy(true)
@@ -298,7 +291,7 @@ export default function DriverHome() {
     const q = query.trim().toLowerCase()
     // Safety net: never show finished rides in “available” list even if API misbehaves.
     const activeOnly = (Array.isArray(rides) ? rides : []).filter(
-      (r) => ['pending', 'searching'].includes(String(r?.status || '')),
+      (r) => !new Set(['completed', 'cancelled', 'arrived', 'started', 'accepted']).has(String(r?.status || '')),
     )
     if (!q) return activeOnly
     return activeOnly.filter((r) => {
