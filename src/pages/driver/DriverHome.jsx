@@ -9,6 +9,7 @@ import * as driver from '@/services/driverService'
 import { getErrorMessage } from '@/lib/apiResponse'
 import { connectDriverAvailableRidesSocket } from '@/lib/rideSocket'
 import { getDriverUserIdFromSession } from '@/lib/sessionTokens'
+import { useGeoWatch } from '@/lib/useGeoWatch'
 import { cn } from '@/lib/utils'
 
 const ink = 'text-[#0A0C0F]'
@@ -98,7 +99,7 @@ function Pill({ children, className }) {
  */
 export default function DriverHome() {
   const navigate = useNavigate()
-  const [coords, setCoords] = useState(null)
+  const [manualCoords, setManualCoords] = useState(null)
   const [locBusy, setLocBusy] = useState(false)
   const [online, setOnline] = useState(false)
   const [statusBusy, setStatusBusy] = useState(false)
@@ -116,6 +117,19 @@ export default function DriverHome() {
   const [negotiatingRides, setNegotiatingRides] = useState([])
   const [negotiateId, setNegotiateId] = useState(null)
   const [negotiateAmount, setNegotiateAmount] = useState('')
+
+  const { pos: livePos } = useGeoWatch({
+    enabled: true,
+    highAccuracy: true,
+    minIntervalMs: 3500,
+    maxAgeMs: 10_000,
+    timeoutMs: 12_000,
+  })
+
+  const coords = useMemo(() => {
+    if (livePos) return { lat: livePos.lat, lng: livePos.lng }
+    return manualCoords
+  }, [livePos, manualCoords])
 
   const loadStatus = useCallback(async () => {
     try {
@@ -151,6 +165,7 @@ export default function DriverHome() {
     await loadNegotiating()
   }, [loadNegotiating])
 
+  const heading = livePos?.heading
   const fetchNearby = useCallback(async () => {
     if (!coords) {
       setRides([])
@@ -158,7 +173,15 @@ export default function DriverHome() {
       return
     }
     try {
-      await driver.updateDriverLocation({ latitude: coords.lat, longitude: coords.lng }).catch(() => {})
+      if (online) {
+        await driver
+          .updateDriverLocation({
+            latitude: coords.lat,
+            longitude: coords.lng,
+            ...(heading != null ? { currentHeading: heading } : {}),
+          })
+          .catch(() => {})
+      }
       const pack = await driver.getAvailableRides({
         latitude: coords.lat,
         longitude: coords.lng,
@@ -182,10 +205,12 @@ export default function DriverHome() {
       toast.error(getErrorMessage(e))
       setRides([])
     }
-  }, [coords, loadNegotiating])
+  }, [coords, loadNegotiating, online, heading])
 
   const fetchNearbyRef = useRef(fetchNearby)
-  fetchNearbyRef.current = fetchNearby
+  useEffect(() => {
+    fetchNearbyRef.current = fetchNearby
+  }, [fetchNearby])
 
   useEffect(() => {
     const driverId = getDriverUserIdFromSession()
@@ -240,7 +265,7 @@ export default function DriverHome() {
         toast.message('فعّل الموقع في المتصفح لعرض الطلبات القريبة.')
         return
       }
-      setCoords(c)
+      setManualCoords(c)
       toast.success('تم تحديث موقعك')
     } finally {
       setLocBusy(false)
@@ -248,8 +273,8 @@ export default function DriverHome() {
   }, [])
 
   useEffect(() => {
-    onLocate()
-  }, [onLocate])
+    if (!coords) onLocate()
+  }, [coords, onLocate])
 
   const onToggleOnline = async () => {
     setStatusBusy(true)

@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
-import { getActiveRole, getSessionDriverToken, getSessionRiderToken, clearSessionAuth } from '@/lib/sessionTokens'
+import { getActiveRole, getSessionRiderToken, clearSessionAuth } from '@/lib/sessionTokens'
 import * as rider from '@/services/riderService'
 import * as driver from '@/services/driverService'
 

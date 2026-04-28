@@ -20,7 +20,9 @@ export default function RiderRealtimeBridge() {
   const { pathname } = useLocation()
   const role = getActiveRole()
   const pathRef = useRef(pathname)
-  pathRef.current = pathname
+  useEffect(() => {
+    pathRef.current = pathname
+  }, [pathname])
 
   useEffect(() => {
     if (role !== 'rider') return undefined

@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { MapContainer, Marker, Polyline, TileLayer, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { cn } from '@/lib/utils'
+import MapOverlayControls from '@/components/map/MapOverlayControls'
 
 function pinIcon(color) {
   return L.divIcon({
@@ -32,10 +33,7 @@ function FitBounds({ points }) {
  * @param {{ className?: string, pickup?: { lat: number, lng: number }, dropoff?: { lat: number, lng: number }, driver?: { lat: number, lng: number } | null, showRoute?: boolean }} props
  */
 export default function TripLiveMap({ className, pickup, dropoff, driver, showRoute = true }) {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  // This app is client-only (Vite SPA). Leaflet depends on DOM, but we always run in the browser here.
 
   const center = useMemo(() => {
     const plat = Number(pickup?.lat)
@@ -72,10 +70,6 @@ export default function TripLiveMap({ className, pickup, dropoff, driver, showRo
     return [a, b]
   }, [pickup, dropoff, showRoute])
 
-  if (!mounted) {
-    return <div className={cn('animate-pulse bg-[#dfe3ea]', className)} aria-hidden />
-  }
-
   return (
     <div
       className={cn(
@@ -95,6 +89,7 @@ export default function TripLiveMap({ className, pickup, dropoff, driver, showRo
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <FitBounds points={boundsPoints} />
+        <MapOverlayControls focus={driver || pickup || dropoff || null} />
         {routeLine ? (
           <Polyline
             positions={routeLine}

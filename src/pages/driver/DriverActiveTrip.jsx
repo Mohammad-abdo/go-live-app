@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { ChevronRight, MessageSquareText, Phone } from 'lucide-react'
@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import TripLiveMap from '@/components/map/TripLiveMap'
 import { getErrorMessage } from '@/lib/apiResponse'
 import * as driver from '@/services/driverService'
+import { useGeoWatch } from '@/lib/useGeoWatch'
+import LiveTripSheet from '@/components/app/LiveTripSheet'
 import { cn } from '@/lib/utils'
 
 const ink = 'text-[#0A0C0F]'
@@ -72,6 +74,21 @@ export default function DriverActiveTrip() {
   const [loadErr, setLoadErr] = useState(null)
   const [busy, setBusy] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
+  const [sentOnce, setSentOnce] = useState(false)
+
+  const rideStatus = String(ride?.status || '')
+  const rideIsLive = Boolean(rideId) && ride && !['completed', 'cancelled'].includes(rideStatus)
+  const geoEnabled = rideIsLive
+
+  const { pos: myPos } = useGeoWatch({
+    enabled: geoEnabled,
+    highAccuracy: true,
+    minIntervalMs: 2500,
+    maxAgeMs: 5_000,
+    timeoutMs: 12_000,
+  })
+
+  const lastSendRef = useRef(0)
 
   const load = useCallback(async () => {
     if (!rideId) return
@@ -94,6 +111,25 @@ export default function DriverActiveTrip() {
     const t = setInterval(load, 5000)
     return () => clearInterval(t)
   }, [rideId, load])
+
+  useEffect(() => {
+    if (!rideIsLive) return
+    if (!myPos) return
+    const now = Date.now()
+    if (lastSendRef.current && now - lastSendRef.current < 2500) return
+    lastSendRef.current = now
+    const payload = {
+      latitude: myPos.lat,
+      longitude: myPos.lng,
+      ...(myPos.heading != null ? { currentHeading: myPos.heading } : {}),
+    }
+    driver
+      .updateDriverLocation(payload)
+      .then(() => {
+        if (!sentOnce) setSentOnce(true)
+      })
+      .catch(() => {})
+  }, [myPos, rideIsLive, sentOnce])
 
   const pickup = useMemo(() => {
     if (!ride) return null
@@ -196,20 +232,24 @@ export default function DriverActiveTrip() {
   const negotiating = st === 'negotiating'
   const durMin = ride.duration != null ? Math.max(1, Math.round(Number(ride.duration))) : null
   const pickupShort = shortPlace(ride.startAddress)
+  const driverPoint =
+    myPos && Number.isFinite(Number(myPos.lat)) && Number.isFinite(Number(myPos.lng))
+      ? { lat: myPos.lat, lng: myPos.lng }
+      : null
 
   return (
     <div dir="rtl" className="relative isolate h-[100dvh] max-h-[100dvh] overflow-hidden bg-[#fafafa]">
       <div className="absolute inset-x-0 top-0 z-0 h-[min(46vh,380px)] min-h-[200px]">
         {pickup && dropoff ? (
-          <TripLiveMap className="absolute inset-0 h-full w-full" pickup={pickup} dropoff={dropoff} driver={null} />
+          <TripLiveMap className="absolute inset-0 h-full w-full" pickup={pickup} dropoff={dropoff} driver={driverPoint} />
         ) : (
           <div className="absolute inset-0 bg-[#dfe3ea]" />
         )}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/20" aria-hidden />
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 top-[min(42vh,360px)] z-10 flex flex-col rounded-t-[20px] bg-[#fafafa] px-5 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] pt-4 shadow-[0_-12px_40px_rgba(0,0,0,0.14)]">
-        <div className="mx-auto mb-3 h-1 w-10 shrink-0 rounded-full bg-[#e0e4eb]" />
+      <div className="absolute inset-x-0 bottom-0 top-[min(42vh,360px)] z-10 flex flex-col">
+        <LiveTripSheet className="h-full rounded-t-[20px] bg-[#fafafa] pt-4 shadow-[0_-12px_40px_rgba(0,0,0,0.14)]">
 
         <div className="mb-3 flex items-center justify-between gap-2">
           <Link
@@ -360,7 +400,13 @@ export default function DriverActiveTrip() {
           ) : null}
 
           {done ? <p className="rounded-xl bg-emerald-50 px-3 py-2 text-center text-sm text-emerald-900">انتهت هذه الرحلة.</p> : null}
+          {!done ? (
+            <p className="text-center text-[10px] leading-tight text-[#B8C0CC]">
+              {sentOnce ? <span className="text-emerald-600">● إرسال موقعك قيد التشغيل</span> : <span>تجهيز تتبع GPS…</span>}
+            </p>
+          ) : null}
         </div>
+        </LiveTripSheet>
       </div>
 
       {cancelOpen ? (

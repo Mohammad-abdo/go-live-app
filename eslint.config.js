@@ -17,5 +17,27 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      /**
+       * This project is a client-only SPA. Some React Hooks “best practice” rules
+       * are too strict for our patterns (initial loads, subscriptions, etc.).
+       * Keep correctness + DX while avoiding noisy false positives.
+       */
+      'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/refs': 'off',
+      /**
+       * UI primitives often export helpers/variants alongside the component.
+       * Fast refresh still works fine here.
+       */
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+  {
+    files: ['vite.config.js', 'tailwind.config.js', '**/*.config.js'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
   },
 ])

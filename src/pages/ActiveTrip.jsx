@@ -24,6 +24,7 @@ import { api } from '@/lib/api'
 import { connectRideTrackingSocket, resolveSocketBaseUrl } from '@/lib/rideSocket'
 import * as rider from '@/services/riderService'
 import { resolveMediaUrl } from '@/lib/resolveMediaUrl'
+import LiveTripSheet from '@/components/app/LiveTripSheet'
 import { cn } from '@/lib/utils'
 
 const ink = 'text-[#0A0C0F]'
@@ -369,14 +370,7 @@ export default function ActiveTrip() {
         </div>
       </div>
 
-      <motion.div
-        layout
-        initial={{ y: 12, opacity: 0.96 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-        className="pointer-events-auto relative z-10 flex min-h-0 flex-[1_1_auto] flex-col rounded-t-[32px] bg-white px-5 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] pt-3 shadow-[0_-16px_48px_rgba(10,12,15,0.12)]"
-      >
-        <div className="mx-auto mb-2 h-1 w-[42px] shrink-0 rounded-full bg-[#D5D9E2]" />
+      <LiveTripSheet>
 
         <div className="mb-3 flex items-center justify-between gap-2">
           <Link
@@ -594,7 +588,7 @@ export default function ActiveTrip() {
             <Link to="/app/support">الدعم والمساعدة</Link>
           </Button>
         </div>
-      </motion.div>
+      </LiveTripSheet>
 
       <AnimatePresence>
         {contactOpen ? (

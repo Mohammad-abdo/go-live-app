@@ -38,7 +38,7 @@ export default function NotificationsPeek({ onSeeAll }) {
           const data = await rider.getNotifications()
           if (!c) setRows(Array.isArray(data?.notifications) ? data.notifications.slice(0, 5) : [])
         }
-      } catch (e) {
+      } catch {
         if (!c) setRows([])
       } finally {
         if (!c) setLoading(false)

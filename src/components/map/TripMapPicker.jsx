@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import { cn } from '@/lib/utils'
 import { reverseGeocode } from '@/lib/osmGeocode'
+import MapOverlayControls from '@/components/map/MapOverlayControls'
 
 function pinIcon(color) {
   return L.divIcon({
@@ -63,7 +64,9 @@ function MapInitialFit({ pickup, dropoff }) {
         maxZoom: 15,
         animate: false,
       })
-    } catch (_) {}
+    } catch {
+      // ignore invalid bounds (rare: NaN)
+    }
   }, [map, pickup.lat, pickup.lng, dropoff.lat, dropoff.lng])
   return null
 }
@@ -92,7 +95,9 @@ function MapFitRouteAndCaptains({ pickup, dropoff, nearbyDrivers }) {
         const b = L.latLngBounds(pts)
         map.invalidateSize()
         map.fitBounds(b, { padding: [52, 52], maxZoom: 15, animate: false })
-      } catch (_) {}
+      } catch {
+        // ignore
+      }
     }, 220)
     return () => window.clearTimeout(t)
   }, [map, key, pickup.lat, pickup.lng, dropoff.lat, dropoff.lng, nearbyDrivers])
@@ -127,13 +132,8 @@ export default function TripMapPicker({
   readOnly = false,
   nearbyDrivers = [],
 }) {
-  const [mounted, setMounted] = useState(false)
   const geoPickupSeq = useRef(0)
   const geoDropoffSeq = useRef(0)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   const center = useMemo(() => {
     const midLat = (pickup.lat + dropoff.lat) / 2
@@ -201,10 +201,6 @@ export default function TripMapPicker({
     return out
   }, [nearbyDrivers])
 
-  if (!mounted) {
-    return <div className={cn('animate-pulse bg-[#dfe3ea]', className)} aria-hidden />
-  }
-
   return (
     <div className={cn('size-full [&_.leaflet-container]:size-full [&_.leaflet-container]:bg-[#e8eaef]', className)}>
       <MapContainer center={center} zoom={13} scrollWheelZoom className="z-0 size-full" style={{ minHeight: '100%' }}>
@@ -212,6 +208,7 @@ export default function TripMapPicker({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        <MapOverlayControls focus={pickup || null} />
         {readOnly ? (
           <MapFitRouteAndCaptains pickup={pickup} dropoff={dropoff} nearbyDrivers={nearbyDrivers} />
         ) : nearbyDrivers?.length ? (

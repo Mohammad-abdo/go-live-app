@@ -2,7 +2,7 @@
   "info": {
     "name": "Go Live Tester — Mobile (Rider + Driver)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Endpoints used by go-live-tester. Set variables: base_url, rider_token, driver_token."
+    "description": "Endpoints used by go-live-tester. Set variables: `base_url`, `rider_token`, `driver_token`.\n\n**Rider map preview:** `POST /apimobile/user/map/nearby-drivers` (no booking). **Driver OTP:** set `driver_token` from register response, then **Driver submit OTP** / **Driver send OTP**."
   },
   "variable": [
     {
@@ -272,6 +272,33 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"booking_id\": 1,\n  \"booking_location\": {\n    \"lat\": 30,\n    \"lng\": 31\n  },\n  \"radius_km\": 15\n}"
+            }
+          }
+        },
+        {
+          "name": "Map nearby drivers (preview, no booking)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/user/map/nearby-drivers",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rider_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lat\": 30.0444,\n  \"lng\": 31.2357,\n  \"radius_km\": 12\n}"
             }
           }
         },
@@ -790,6 +817,14 @@
       "name": "Driver — Auth",
       "item": [
         {
+          "name": "Driver registration services (public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/apimobile/driver/services"
+          }
+        },
+        {
           "name": "Driver register (multipart)",
           "request": {
             "method": "POST",
@@ -861,6 +896,68 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"phone\": \"01001234567\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Driver resend OTP (by phone)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/driver/auth/resend-otp",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"01001234567\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Driver submit OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/apimobile/driver/auth/submit-otp",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driver_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"otp\": \"123456\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Driver send OTP (Bearer — unverified account)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{base_url}}/apimobile/driver/auth/send-otp",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driver_token}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         }

@@ -50,6 +50,10 @@ export default function TripChat() {
 
   const me = useMemo(() => (role === 'driver' ? 'driver' : 'rider'), [role])
 
+  useLayoutEffect(() => {
+    listEndRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'end' })
+  }, [rows.length])
+
   const load = useCallback(async () => {
     if (!rideId) return
     setLoading(true)
@@ -68,6 +72,28 @@ export default function TripChat() {
   useEffect(() => {
     load()
   }, [load])
+
+  useEffect(() => {
+    if (!rideId) return
+    const disconnect = connectRideChatSocket({
+      rideId,
+      onChatMessage: (payload) => {
+        const msg = payload?.message || payload
+        if (!msg || msg.id == null) return
+        setRows((prev) => {
+          if (prev.some((x) => Number(x.id) === Number(msg.id))) return prev
+          return [...prev, msg]
+        })
+        if (msg.senderType && String(msg.senderType) !== String(me)) {
+          playInAppSound('message').catch(() => {})
+        }
+      },
+      onError: () => {
+        // keep REST chat usable even if socket fails
+      },
+    })
+    return disconnect
+  }, [rideId, me])
 
   useEffect(() => {
     if (!rideId || role !== 'rider') return
@@ -101,6 +127,7 @@ export default function TripChat() {
         if (saved?.id != null && r.some((x) => Number(x.id) === Number(saved.id))) return r
         return [...r, saved]
       })
+      playInAppSound('send').catch(() => {})
     } catch (e) {
       toast.error(getErrorMessage(e))
     } finally {

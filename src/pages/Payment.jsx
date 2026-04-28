@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { ChevronRight, CreditCard, PlusCircle, Trash2 } from 'lucide-react'
@@ -23,7 +23,7 @@ export default function Payment() {
   const [holder, setHolder] = useState('')
   const [saving, setSaving] = useState(false)
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (role !== 'rider') {
       setCards([])
       setLoading(false)
@@ -38,11 +38,11 @@ export default function Payment() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [role])
 
   useEffect(() => {
     load()
-  }, [role])
+  }, [load])
 
   const addCard = async (e) => {
     e.preventDefault()
