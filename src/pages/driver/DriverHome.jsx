@@ -291,7 +291,7 @@ export default function DriverHome() {
     const q = query.trim().toLowerCase()
     // Safety net: never show finished rides in “available” list even if API misbehaves.
     const activeOnly = (Array.isArray(rides) ? rides : []).filter(
-      (r) => !new Set(['completed', 'cancelled', 'arrived', 'started', 'accepted']).has(String(r?.status || '')),
+      (r) => ['pending', 'searching', ''].includes(String(r?.status ?? '')),  // backend always returns these statuses
     )
     if (!q) return activeOnly
     return activeOnly.filter((r) => {
