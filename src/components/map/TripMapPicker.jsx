@@ -15,11 +15,45 @@ function pinIcon(color) {
 }
 
 function captainIcon() {
+  return carIcon({ color: '#2563eb' })
+}
+
+function normalizeHeadingDeg(raw) {
+  const n = Number(raw)
+  if (!Number.isFinite(n)) return 0
+  return ((n % 360) + 360) % 360
+}
+
+function carIcon({ headingDeg = 0, color = '#2563eb' } = {}) {
+  const deg = normalizeHeadingDeg(headingDeg)
+  const svg = encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26">
+      <g transform="translate(13 13) rotate(${deg}) translate(-13 -13)">
+        <path d="M6.1 10.2c.3-.9 1.1-1.6 2.1-1.8l6.1-1c1.3-.2 2.6.4 3.2 1.6l1.6 3.1c.3.5.8.9 1.4 1l.6.1c.5.1.9.5.9 1v2.3c0 .6-.5 1.1-1.1 1.1h-1.2a2.2 2.2 0 0 1-4.4 0H10a2.2 2.2 0 0 1-4.4 0H4.4c-.6 0-1.1-.5-1.1-1.1v-2.1c0-.5.3-.9.8-1.1l.6-.2c.5-.2.9-.6 1.1-1.1l.3-.8z" fill="${color}"/>
+        <path d="M9.4 9.6 14 8.8c.7-.1 1.4.2 1.7.8l1.1 2.2H8.6l.8-2.2z" fill="rgba(255,255,255,.55)"/>
+        <circle cx="8.3" cy="18" r="1.6" fill="#0b1220" opacity=".9"/>
+        <circle cx="17.7" cy="18" r="1.6" fill="#0b1220" opacity=".9"/>
+      </g>
+    </svg>
+  `)
+
   return L.divIcon({
-    className: 'go-map-captain',
-    html: `<div style="width:14px;height:14px;border-radius:50%;background:#2563eb;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.25)"></div>`,
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
+    className: 'go-map-car',
+    html: `
+      <div style="
+        width:28px;height:28px;
+        display:flex;align-items:center;justify-content:center;
+        border-radius:10px;
+        background:rgba(255,255,255,.92);
+        box-shadow:0 6px 18px rgba(0,0,0,.18);
+        border:1px solid rgba(0,0,0,.08);
+        backdrop-filter: blur(6px);
+      ">
+        <img alt="" style="width:26px;height:26px;display:block" src="data:image/svg+xml,${svg}" />
+      </div>
+    `,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
   })
 }
 
@@ -33,11 +67,14 @@ function driverLatLng(d) {
   if (cl && typeof cl === 'object') {
     const la = parseFloat(String(cl.lat ?? ''))
     const lo = parseFloat(String(cl.lng ?? ''))
-    if (Number.isFinite(la) && Number.isFinite(lo)) return { id: d.id, lat: la, lng: lo }
+    const heading =
+      d?.currentHeading ?? d?.heading ?? d?.current_heading ?? d?.heading_deg ?? cl.heading ?? cl.currentHeading
+    if (Number.isFinite(la) && Number.isFinite(lo)) return { id: d.id, lat: la, lng: lo, heading }
   }
   const la = parseFloat(String(d?.latitude ?? d?.lat ?? ''))
   const lo = parseFloat(String(d?.longitude ?? d?.lng ?? ''))
-  if (Number.isFinite(la) && Number.isFinite(lo)) return { id: d.id, lat: la, lng: lo }
+  const heading = d?.currentHeading ?? d?.heading ?? d?.current_heading ?? d?.heading_deg
+  if (Number.isFinite(la) && Number.isFinite(lo)) return { id: d.id, lat: la, lng: lo, heading }
   return null
 }
 
@@ -308,7 +345,11 @@ export default function TripMapPicker({
         ) : null}
         {!readOnly ? <MapClickLayer mode={mapMode} onPick={onPick} /> : null}
         {captainMarkers.map((p) => (
-          <Marker key={p.key} position={[p.lat, p.lng]} icon={captainIcon()} />
+          <Marker
+            key={p.key}
+            position={[p.lat, p.lng]}
+            icon={carIcon({ headingDeg: p.heading, color: '#2563eb' })}
+          />
         ))}
         <Marker
           position={[pickup.lat, pickup.lng]}
